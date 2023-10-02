@@ -6,8 +6,74 @@ function createRouter(database) {
 
   // the routes are defined here
 
-  router.get('/conti', function (req, res, next) {
+  router.get('/selectAll/categorie', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/categorie.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/conti', function (req, res, next) {
     database.executeQueryFromFile('./queries/selectAll/conti.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/currency', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/currency.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/gruppiconto', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/gruppiconto.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/ricorrenti', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/ricorrenti.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/transazioni', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/transazioni.sql', function(result){
+      if(result.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(result);
+      }
+    });
+  });
+
+  router.get('/selectAll/utenti', function (req, res, next) {
+    database.executeQueryFromFile('./queries/selectAll/utenti.sql', function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }

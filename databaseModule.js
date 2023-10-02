@@ -247,9 +247,7 @@ class DatabaseModule {
             let index_contoFrom = -1;
             let index_contoTo = -1;
             //console.log(transazioni[i]);
-
             
-
             if(transazioni[i].idCategoria == null){
               //console.log("Trasferimento");
               // Trasferimento
@@ -338,7 +336,7 @@ class DatabaseModule {
       for(let i = 0; i < conti.length; i++){
         conti[i].data = [];
         for(let j = 0; j < dayToCount; j++){
-          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100]);
+          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100, new Date(dateBeginYear + (j * MSTOGG)).toString()]);
         }
       }
 
@@ -413,20 +411,16 @@ class DatabaseModule {
 
             if(index_contoFrom != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoFrom].data[j] = [tmp_date, Math.round(conti[index_contoFrom].valore * 100) / 100 ];
+                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()];
               }
             }
             //console.log("index_contoTo: " + index_contoTo);
             
             if(index_contoTo != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoTo].data[j] = [tmp_date, Math.round(conti[index_contoTo].valore * 100) / 100 ];
+                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()];
               }
             }
-
-            /*if(transazioni[i].idContoFrom == 1 || transazioni[i].idContoTo == 1){
-              console.log(conti[0].conto + " " + transazioni[i].dateTime + " " + transazioni[i].idContoFrom + " " + transazioni[i].idContoTo + " " + transazioni[i].idCategoria + " " + transazioni[i].importo + " " +  (Math.round(conti[0].valore * 100) / 100).toString());
-            }*/
           }
 
           //Set totale
@@ -441,7 +435,6 @@ class DatabaseModule {
           callback(conti);
         });
       });
-      //callback(conti);
     });
   }
 
