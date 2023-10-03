@@ -72,7 +72,7 @@ class TelegramModule {
 
               switch(component.fsmData[msg.chat.id].step){
                 case 1:
-                  await component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', async function(categorieParent){
+                  await component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, async function(categorieParent){
                     let inline_keyboard = [];
 
                     for(let i = 0; i < categorieParent.length; i++){
@@ -96,7 +96,7 @@ class TelegramModule {
                 break;
 
                 case 2:
-                  await component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', async function(categorieParent){
+                  await component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', {}, async function(categorieParent){
                     let inline_keyboard = [];
 
                     for(let i = 0; i < categorieParent.length; i++){
@@ -120,7 +120,7 @@ class TelegramModule {
                 break;
 
                 case 3:
-                  await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+                  await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
                     let inline_keyboard = [];
                     for(let i = 0; i < conti.length; i++){
                       if(i % 3 == 0){
@@ -161,7 +161,7 @@ class TelegramModule {
 
       switch(component.fsmData[msg.message.chat.id].step){
         case 11:
-          await component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', async function(categorieParent){
+          await component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, async function(categorieParent){
             let nomeParent;
             for(let i = 0; i < categorieParent.length; i++){
               if(categorieParent[i].idCategoria == msg.data){
@@ -169,12 +169,12 @@ class TelegramModule {
                 break;
               }
             }
-
-            await component.database.selectCategorieUscitaChild(parseInt(msg.data), async function (categorieChild){
+            
+            await component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", {"idParent": parseInt(msg.data)}, async function(categorieChild){
               let inline_keyboard = [];
 
               if(categorieChild.length == 0){
-                await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+                await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
                   let inline_keyboard = [];
                   for(let i = 0; i < conti.length; i++){
                     if(i % 3 == 0){
@@ -219,7 +219,7 @@ class TelegramModule {
         break;
 
         case 12:
-          await component.database.selectCategorieUscitaChild(component.fsmData[msg.message.chat.id].idCategoriaParent, async function (categorieChild){
+          await component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", {"idParent": component.fsmData[msg.message.chat.id].idCategoriaParent}, async function(categorieChild){
             let nomeChild;
 
             for(let i = 0; i < categorieChild.length; i++){
@@ -229,7 +229,7 @@ class TelegramModule {
               }
             }
 
-            await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+            await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
               let inline_keyboard = [];
               for(let i = 0; i < conti.length; i++){
                 if(i % 3 == 0){
@@ -253,7 +253,7 @@ class TelegramModule {
         break;
       
         case 13:
-          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
             let nomeConto;
 
             for(let i = 0; i < conti.length; i++){
@@ -292,7 +292,7 @@ class TelegramModule {
         break;
       
         case 21:
-          await component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', async function(categorieParent){
+          await component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', {}, async function(categorieParent){
             let nomeParent;
             for(let i = 0; i < categorieParent.length; i++){
               if(categorieParent[i].idCategoria == msg.data){
@@ -301,11 +301,11 @@ class TelegramModule {
               }
             }
 
-            await component.database.selectCategorieEntrataChild(parseInt(msg.data), async function (categorieChild){
+            await component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", {"idParent": parseInt(msg.data)}, async function(categorieChild){
               let inline_keyboard = [];
 
               if(categorieChild.length == 0){
-                await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+                await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
                   let inline_keyboard = [];
                   for(let i = 0; i < conti.length; i++){
                     if(i % 3 == 0){
@@ -350,7 +350,7 @@ class TelegramModule {
         break;
       
         case 22:
-          await component.database.selectCategorieEntrataChild(component.fsmData[msg.message.chat.id].idCategoriaParent, async function (categorieChild){
+          await component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", {"idParent": component.fsmData[msg.message.chat.id].idCategoriaParent}, async function(categorieChild){
             let nomeChild;
 
             for(let i = 0; i < categorieChild.length; i++){
@@ -360,7 +360,7 @@ class TelegramModule {
               }
             }
 
-            await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+            await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
               let inline_keyboard = [];
               for(let i = 0; i < conti.length; i++){
                 if(i % 3 == 0){
@@ -384,7 +384,7 @@ class TelegramModule {
         break;
       
         case 23:
-          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
             let nomeConto;
 
             for(let i = 0; i < conti.length; i++){
@@ -422,7 +422,7 @@ class TelegramModule {
         break;
       
         case 31:
-          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){ 
+          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){ 
             let nomeConto;
 
             for(let i = 0; i < conti.length; i++){
@@ -454,7 +454,7 @@ class TelegramModule {
         break;
       
         case 32:
-          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', async function(conti){
+          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
             let nomeConto;
 
             for(let i = 0; i < conti.length; i++){

@@ -66,13 +66,22 @@ class DatabaseModule {
     });
   }
 
-  executeQueryFromFile(queryFilePath, callback){
+  executeQueryFromFile(queryFilePath, dataImport, callback){
+    let possibleTags = ["idParent", "dateTimeStart", "dateTimeEnd", "anno"];
+
     //Leggi file
     fs.readFile(queryFilePath, 'utf8', (err, data) => {
       if (err) {
         console.error(err);
         return;
       }
+
+      for(let i = 0 ; i < possibleTags.length; i++){
+        if(dataImport[possibleTags[i]] != null){
+          data = data.replaceAll("${" + possibleTags[i] + "}", dataImport[possibleTags[i]]);
+        }
+      }
+      
       //Esegui query
       this.executeQuery(data, function(result){
         callback(result);
@@ -80,90 +89,14 @@ class DatabaseModule {
     });  
   }
 
-  // Categorie in uscita che hanno una categoria padre
-  selectCategorieUscitaChild(idParent, callback){
-    let sql = "SELECT * FROM Categorie WHERE idCategoriaParent = " + idParent + " AND isUscita = 1 AND isDeleted = 0;";
-
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  // Categoria in entrata che hanno una categoria padre
-  selectCategorieEntrataChild(idParent, callback){
-    let sql = "SELECT * FROM Categorie WHERE idCategoriaParent = " + idParent + " AND isEntrata = 1 AND isDeleted = 0;";
-
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  getUscitePerContoToDate(end, callback){
-    let sql = "SELECT SUM(importo) AS 'uscite', idContoFrom \
-    FROM Transazioni AS T, Categorie AS C \
-    WHERE T.idCategoria = C.idCategoria \
-    AND C.isUscita = 1 AND T.dateTime < \"" + end + "\" \
-    AND T.isDeleted = 0 AND C.isDeleted = 0 \
-    GROUP BY idContoFrom \
-    ORDER BY idContoFrom ASC; \
-    ";
-
-    //console.log(sql);
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  getEntratePerContoToDate(end, callback){
-    let sql = "SELECT SUM(T.importo) AS 'entrate', T.idContoFrom \
-    FROM Transazioni AS T, Categorie AS C \
-    WHERE T.idCategoria = C.idCategoria \
-    AND C.isEntrata = 1 AND T.dateTime < \"" + end + "\" \
-    AND T.isDeleted = 0 AND C.isDeleted = 0 \
-    GROUP BY T.idContoFrom \
-    ORDER BY T.idContoFrom ASC; \
-    ";
-
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  getTrasferimentiUscitaPerContoToDate(end, callback){
-    let sql = "SELECT SUM(importo) AS 'transazioniUscita', idContoFrom \
-    FROM Transazioni \
-    WHERE idContoTo IS NOT NULL AND idContoFrom IS NOT NULL AND dateTime < \"" + end + "\" \
-    AND isDeleted = 0 \
-    GROUP BY idContoFrom \
-    ORDER BY idContoFrom ASC;";
-
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  getTrasferimentiEntrataPerContoToDate(end, callback){
-    let sql = "SELECT SUM(importo) AS 'transazioniEntrata', idContoTo \
-    FROM Transazioni \
-    WHERE idContoTo IS NOT NULL AND idContoFrom IS NOT NULL AND dateTime < \"" + end + "\" \
-    AND isDeleted = 0 \
-    GROUP BY idContoTo \
-    ORDER BY idContoTo ASC; \
-    ";
-
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
   // Bilancio per ogni conto fino al end (data)
   getBilancioPerConto(end, callback){
     let component = this;
-    component.executeQueryFromFile('./queries/misc/contiAndGruppo.sql', function(conti){
-      component.getUscitePerContoToDate(end, function(uscite){
-        component.getEntratePerContoToDate(end, function(entrate){
-          component.getTrasferimentiUscitaPerContoToDate(end, function(transazioniUscita){
-            component.getTrasferimentiEntrataPerContoToDate(end, function(transazioniEntrata){
+    component.executeQueryFromFile('./queries/misc/contiAndGruppo.sql', {}, function(conti){
+      component.executeQueryFromFile('./queries/misc/uscitePerContoToDate.sql', {"dateTimeEnd": end}, function(uscite){
+        component.executeQueryFromFile('./queries/misc/entratePerContoToDate.sql', {"dateTimeEnd": end}, function(entrate){
+          component.executeQueryFromFile('./queries/transazioni/trasferimentiUscitaPerContoToDate.sql', {"dateTimeEnd": end}, function(transazioniUscita){
+            component.executeQueryFromFile('./queries/transazioni/trasferimentiEntrataPerContoToDate.sql', {"dateTimeEnd": end}, function(transazioniEntrata){
               let totale = 0;
               for(let i = 0; i < conti.length; i++){
                 //console.log(conti[i]);
@@ -207,120 +140,7 @@ class DatabaseModule {
     });
   }
 
-  getBilancioPerContoAnnuoPerMese(anno, callback){
-    let component = this;
-    component.getBilancioPerConto((anno - 1).toString() + '-12-31', function(conti){
-      for(let i = 0; i < conti.length; i++){
-        conti[i].data = [];
-        for(let j = 0; j < 12; j++){
-          conti[i].data.push(Math.round(conti[i].valore * 100) / 100);
-        }
-      }
-
-      component.selectTransazioni(anno.toString() + '-01-01', anno.toString() + '-12-31', function(transazioni){
-        component.selectTrasferimenti(anno.toString() + '-01-01', anno.toString() + '-12-31', function(trasferimenti){
-          for(let i = 0; i < trasferimenti.length; i++){
-            transazioni.push(trasferimenti[i]);
-          }
-
-          for(let i = 0; i < transazioni.length; i++){
-            if(transazioni[i].custom == true){
-              transazioni[i].dateTime = transazioni[i].dateTime;
-            }
-            else{
-              transazioni[i].dateTime = component.DBdateToString(transazioni[i].dateTime);
-            }
-          }
-
-          for(let i = 0; i < transazioni.length - 1; i++){
-            for(let j = i + 1;j < transazioni.length; j++){
-              if(transazioni[i].dateTime > transazioni[j].dateTime){
-                let tmp = transazioni[i];
-                transazioni[i] = transazioni[j];
-                transazioni[j] = tmp;
-              }
-            }
-          }
-          
-          for(let i = 0; i < transazioni.length; i++){
-            
-            let index_contoFrom = -1;
-            let index_contoTo = -1;
-            //console.log(transazioni[i]);
-            
-            if(transazioni[i].idCategoria == null){
-              //console.log("Trasferimento");
-              // Trasferimento
-              for(let j = 0; j < conti.length; j++){
-                if(conti[j].idConto == transazioni[i].idContoFrom){
-                  conti[j].valore -= transazioni[i].importo;
-                  index_contoFrom = j;
-                }
-                else if(conti[j].idConto == transazioni[i].idContoTo){
-                  conti[j].valore += transazioni[i].importo;
-                  index_contoTo = j;
-                }
-              }
-
-              //console.log("valore from: " + conti[index_contoFrom].valore);
-
-              //console.log("valore to: " + conti[index_contoTo].valore);
-            } 
-            else{
-              //console.log("E/U");
-              for(let j = 0; j < conti.length; j++){
-                if(conti[j].idConto == transazioni[i].idContoFrom){
-                  index_contoFrom = j;
-                  if(transazioni[i].isUscita == 1){ //Uscita
-                    conti[j].valore -= transazioni[i].importo;
-                  }
-                  else if(transazioni[i].isEntrata == 1){ //Entrata
-                    conti[j].valore += transazioni[i].importo;
-                  }
-                }
-              }
-              //console.log("valore: " + conti[index_contoFrom].valore);
-            }
-            //console.log("index_contoFrom: " + index_contoFrom);
-
-            if(index_contoFrom != -1){
-              let index_mese = parseInt(transazioni[i].dateTime.split('-')[1]) - 1;
-              //console.log("index_mese: " + index_mese);
-              for(let j = index_mese; j < 12; j++){
-                conti[index_contoFrom].data[j] = Math.round(conti[index_contoFrom].valore * 100) / 100;
-              }
-            }
-            //console.log("index_contoTo: " + index_contoTo);
-            
-            if(index_contoTo != -1){
-              let index_mese = parseInt(transazioni[i].dateTime.split('-')[1]) - 1;
-              //console.log("index_mese: " + index_mese);
-              for(let j = index_mese; j < 12; j++){
-                conti[index_contoTo].data[j] = Math.round(conti[index_contoTo].valore * 100) / 100;
-              }
-            }
-
-            /*if(transazioni[i].idContoFrom == 1 || transazioni[i].idContoTo == 1){
-              console.log(conti[0].conto + " " + transazioni[i].dateTime + " " + transazioni[i].idContoFrom + " " + transazioni[i].idContoTo + " " + transazioni[i].idCategoria + " " + transazioni[i].importo + " " +  (Math.round(conti[0].valore * 100) / 100).toString());
-            }*/
-          }
-
-          //Set totale
-          conti[conti.length - 1].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-          for(let i = 0; i < conti.length - 1; i++){
-            for(let j = 0; j < 12; j++){
-              conti[conti.length - 1].data[j] += conti[i].data[j];
-            }
-          }
-          for(let i = 0; i < 12; i++){
-            conti[conti.length - 1].data[i] = Math.round(conti[conti.length - 1].data[i] * 100) / 100;
-          }
-          callback(conti);
-        });
-      });
-    });
-  }
-
+  // Bilancio per l'anno diviso per conto e giorno
   getBilancioPerContoAnnuoPerGiorno(anno, callback){
     let component = this;
     let beginYear = anno.toString() + '-01-01';
@@ -336,12 +156,11 @@ class DatabaseModule {
       for(let i = 0; i < conti.length; i++){
         conti[i].data = [];
         for(let j = 0; j < dayToCount; j++){
-          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100, new Date(dateBeginYear + (j * MSTOGG)).toString()]);
+          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100/*, new Date(dateBeginYear + (j * MSTOGG)).toString()*/]);
         }
       }
-
-      component.selectTransazioni(beginYear, endYear, function(transazioni){
-        component.selectTrasferimenti(beginYear, endYear, function(trasferimenti){
+      component.executeQueryFromFile('./queries/misc/transazioniCategorieFromToDate.sql', {"dateTimeStart": beginYear, "dateTimeEnd": endYear}, function(transazioni){
+        component.executeQueryFromFile('./queries/transazioni/trasferimentiFromToDate.sql', {"dateTimeStart": beginYear, "dateTimeEnd": endYear}, function(trasferimenti){
           for(let i = 0; i < trasferimenti.length; i++){
             transazioni.push(trasferimenti[i]);
           }
@@ -411,14 +230,14 @@ class DatabaseModule {
 
             if(index_contoFrom != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()];
+                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100/*, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()*/];
               }
             }
             //console.log("index_contoTo: " + index_contoTo);
             
             if(index_contoTo != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()];
+                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100/*, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()*/];
               }
             }
           }
@@ -438,14 +257,62 @@ class DatabaseModule {
     });
   }
 
+  // Bilancio per l'anno diviso per conto e giorno con una stima del futuro dai ricorrenti
+  // @todo non funziona, solo la prima ricorrenza funziona, le altre rompono tutto e il totale non è aggiornato
+  getBilancioPerContoAnnuoPerGiornoConFuturo(anno, callback){
+    let component = this;
+    let beginYear = anno.toString() + '-01-01';
+    let endYear = anno.toString() + '-12-31';
+    let endLastYear = (anno - 1).toString() + '-12-31';
+    let dateBeginYear = Date.parse(beginYear);
+    let dateEndYear = Date.parse(endYear);
+    let dayToCount = (dateEndYear - dateBeginYear) / MSTOGG;
+
+    component.getBilancioPerContoAnnuoPerGiorno(anno, function(conti){
+      component.executeQueryFromFile('./queries/ricorrenti/ricorrentiCategorie.sql', {}, function(ricorrenti){
+        //console.log("just before for");
+        for(let i = 0; i < ricorrenti.length; i++){
+          //console.log(ricorrenti[i]);
+          for(let j = 0; j < conti.length; j++){
+            if(conti[j].idConto == ricorrenti[i].idContoFrom){
+              let now = new Date();
+              now.setMonth(now.getMonth() + 1);
+              now.setDate(1);
+
+              while(now.getMonth() != 0){
+                if(ricorrenti[i].isEntrata == 1){
+                  conti[j].valore += ricorrenti[i].importo;
+                  conti[conti.length - 1].valore += ricorrenti[i].importo;
+                }
+                else if(ricorrenti[i].isUscita == 1){
+                  conti[j].valore -= ricorrenti[i].importo;
+                  conti[conti.length - 1].valore -= ricorrenti[i].importo;
+                }
+                //console.log(conti[j].valore);
+                //console.log(now.toISOString());
+                let index_day = Math.round((now - dateBeginYear) / MSTOGG);
+                //console.log(index_day);
+                for(let k = index_day; k < dayToCount; k++){
+                  //console.log("saved");
+                  conti[j].data[k] = [conti[j].data[k][0], Math.round(conti[j].valore * 100) / 100];
+                  conti[conti.length - 1].data[k] = [conti[j].data[k][0], 0 /* Math.round(conti[conti.length-1].valore * 100) / 100*/];
+                }
+
+                now.setMonth(now.getMonth() + 1);
+              }
+            }
+          }
+        }
+        callback(conti);
+      });
+    });
+  }
 
   // Calcola il numero di mesi rimasti di sopravvivenza
   getMesiRimanenti(callback){
     let component = this;
-    this.getBilancioPerConto("2023-12-31", function(conti){
-      let sql = "SELECT importo, giorniDifferenza, R.idCategoria, idContoFrom, isMonthly, isEntrata, isUscita FROM Ricorrenti AS R, Categorie AS C WHERE R.idCategoria = C.idCategoria AND C.isDeleted = 0;";
-
-      component.executeQuery(sql, function(results){
+    component.getBilancioPerConto("2023-12-31", function(conti){
+      component.executeQueryFromFile("./queries/ricorrenti/ricorrentiCategorie.sql", {}, function(results){
         let mesiSuperati = 0;
           let valid = true;
           while (valid){
@@ -475,35 +342,6 @@ class DatabaseModule {
     });
   }
 
-  selectTransazioni(dataInizio, dataFine, callback){
-    let sql = "SELECT * FROM Transazioni AS T, Categorie AS C WHERE T.idCategoria = C.idCategoria AND T.dateTime >= '" + dataInizio + "' AND T.dateTime < '" + dataFine + "' AND T.isDeleted = 0 AND C.isDeleted = 0 ORDER BY T.dateTime ASC;";
-    
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  selectTrasferimenti(dataInizio, dataFine, callback){
-    let sql = "SELECT * \
-    FROM Transazioni \
-    WHERE idContoTo IS NOT NULL AND idContoFrom IS NOT NULL AND dateTime >= '" + dataInizio + "' AND dateTime < '" + dataFine + "' \
-    AND isDeleted = 0 \
-    ORDER BY dateTime ASC; \
-    ";
-    this.executeQuery(sql, function(result){
-      callback(result);
-    });
-  }
-
-  // Transazioni comprese fra dataMin e dataMax con una di quelle priorita
-  selectTransazioniConPriorita(priorita, dataInizio, dataFine, callback){
-    let sql = 'SELECT * FROM Transazioni AS T, Categorie AS C WHERE T.idCategoria = C.idCategoria AND C.priorita IN (' + priorita + ') AND T.dateTime >= \'' + dataInizio + '\' AND T.dateTime < \'' + dataFine + '\' AND T.isDeleted = 0 AND C.isDeleted = 0;';
-    
-    this.executeQuery(sql, function(results){
-      callback(results);
-    });
-  }
-
   // Inserisci una nuova transazione
   insertTransazioneNow(importo, idCategoria, idContoFrom, idContoTo, nota, descrizione, callback){
     let sql = "INSERT INTO Transazioni (dateTime, importo, idCategoria, idContoFrom, idContoTo, idCurrency, nota, descrizione) VALUES (NOW(), " + importo + ", " + idCategoria + ", " + idContoFrom + ", " + idContoTo + ", 1, '" + nota + "', '" + descrizione + "');";
@@ -515,15 +353,9 @@ class DatabaseModule {
 
   getUsciteMensiliCategoriaParent(anno, callback){
     let component = this;
-    let sql = "SELECT C.nome AS 'nome', SUM(T.importo) AS 'importo', MONTH(T.DATETIME) AS 'mese', C.idCategoriaParent " +
-      "FROM Transazioni AS T, Categorie AS C " +
-      "WHERE T.idCategoria = C.idCategoria AND YEAR(T.DATETIME) = " + anno.toString() + " AND T.idCategoria IS NOT NULL AND C.isUscita = 1 AND T.isDeleted = 0 AND C.isDeleted = 0 " +
-      "GROUP BY T.idCategoria, YEAR(T.DATETIME), MONTH(T.DATETIME) " +
-      "ORDER BY MONTH(T.DATETIME) ASC, C.nome ASC;";
 
-    //console.log(sql);
-    this.executeQuery(sql, function(results){
-      component.executeQueryFromFile('./queries/categorie/uscitaParent.sql', function(categorie){
+    component.executeQueryFromFile('./queries/misc/uscitePerMeseCategoriaParent.sql', {"anno": anno.toString()}, function(results){
+      component.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, function(categorie){
         for(let i = 0; i < categorie.length; i++){
           categorie[i].mesi = [];
           for(let j = 0; j < 12; j++){
@@ -560,15 +392,10 @@ class DatabaseModule {
   }
 
   getUsciteMensiliCategoriaChild(anno, parent, callback){
-    let component = this;
-    let sql = "SELECT C.nome AS 'nome', C.idCategoria AS 'idCategoria', SUM(T.importo) AS 'importo', MONTH(T.DATETIME) AS 'mese', C.idCategoriaParent " +
-      "FROM Transazioni AS T, Categorie AS C " +
-      "WHERE T.idCategoria = C.idCategoria AND YEAR(T.DATETIME) = " + anno.toString() + " AND T.idCategoria IS NOT NULL AND C.isUscita = 1 AND C.idCategoriaParent = " + parent + " AND T.isDeleted = 0 AND C.isDeleted = 0 " +
-      "GROUP BY T.idCategoria, YEAR(T.DATETIME), MONTH(T.DATETIME) " +
-      "ORDER BY MONTH(T.DATETIME) ASC, C.nome ASC;";
-      
-    this.executeQuery(sql, function(results){
-      component.selectCategorieUscitaChild(parent, function(categorie){
+    let component = this;     
+    
+    component.executeQueryFromFile('./queries/misc/uscitePerMeseCategoriaChild.sql', {"idParent": parent, "anno": anno.toString()}, function(results){
+      component.executeQueryFromFile("./queries/categorie/uscitaChild.sql", {"idParent": parent}, function(categorie){
         for(let i = 0; i < categorie.length; i++){
           categorie[i].mesi = [];
           for(let j = 0; j < 12; j++){
@@ -597,14 +424,8 @@ class DatabaseModule {
   }
 
   getUsciteMensiliUltimoAnno(callback){
-    let anno = 2023;
-    let sql = "SELECT C.nome AS 'nome', SUM(T.importo) AS 'importo', MONTH(T.DATETIME) AS 'mese' " +
-      "FROM Transazioni AS T, Categorie AS C " +
-      "WHERE T.idCategoria = C.idCategoria AND YEAR(T.DATETIME) = " + anno.toString() + " AND T.idCategoria IS NOT NULL AND C.isUscita = 1 " +
-      "GROUP BY T.idCategoria, YEAR(T.DATETIME), MONTH(T.DATETIME) " +
-      "ORDER BY MONTH(T.DATETIME) ASC, C.nome ASC;";
-
-    this.executeQuery(sql, function(results){
+    let component = this;
+    component.executeQueryFromFile('./queries/misc/usciteMensiliUltimoAnno.sql', {'anno': 2023}, function(results){
       callback(results);
     });
   }

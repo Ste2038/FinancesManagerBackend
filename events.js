@@ -7,7 +7,7 @@ function createRouter(database) {
   // the routes are defined here
 
   router.get('/selectAll/categorie', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/categorie.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/categorie.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -18,7 +18,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/conti', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/conti.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -29,7 +29,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/currency', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/currency.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/currency.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -40,7 +40,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/gruppiconto', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/gruppiconto.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/gruppiconto.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -51,7 +51,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/ricorrenti', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/ricorrenti.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/ricorrenti.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -62,7 +62,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/transazioni', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/transazioni.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/transazioni.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -73,7 +73,7 @@ function createRouter(database) {
   });
 
   router.get('/selectAll/utenti', function (req, res, next) {
-    database.executeQueryFromFile('./queries/selectAll/utenti.sql', function(result){
+    database.executeQueryFromFile('./queries/selectAll/utenti.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -113,7 +113,7 @@ function createRouter(database) {
   });
 
   router.get('/priorita', function (req, res, next) {
-    database.executeQueryFromFile('./queries/categorie/distinctPrioritaUscita.sql', function(result){
+    database.executeQueryFromFile('./queries/categorie/distinctPrioritaUscita.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -136,6 +136,17 @@ function createRouter(database) {
 
   router.get('/bilancio/annuo', function (req, res, next) {
     database.getBilancioPerContoAnnuoPerGiorno(2023, function(bilancio){
+      if(bilancio.status == 'error'){
+        res.status(500).json({status: 'error'});
+      }
+      else{
+        res.status(200).json(bilancio);
+      }
+    })
+  });
+
+  router.get('/bilancio/futuro', function (req, res, next) {
+    database.getBilancioPerContoAnnuoPerGiornoConFuturo(2023, function(bilancio){
       if(bilancio.status == 'error'){
         res.status(500).json({status: 'error'});
       }
@@ -192,7 +203,7 @@ function createRouter(database) {
   });
 
   router.get('/categorieuscitaparent', function (req, res, next) {
-    database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', function(result){
+    database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, function(result){
       if(result.status == 'error'){
         res.status(500).json({status: 'error'});
       }
