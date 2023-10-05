@@ -146,6 +146,7 @@ function createRouter(database) {
   });
 
   router.get('/bilancio/futuro', function (req, res, next) {
+    //database.getBilancioPerContoAnnuoPerGiorno(2023, function(bilancio){
     database.getBilancioPerContoAnnuoPerGiornoConFuturo(2023, function(bilancio){
       if(bilancio.status == 'error'){
         res.status(500).json({status: 'error'});

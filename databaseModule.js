@@ -1,6 +1,8 @@
 const mysql = require('mysql2');
 const fs = require('fs');
 
+const dbDate = require('./dbDate');
+
 const MSTOGG = 1000 * 60 * 60 * 24;
 
 class DatabaseModule {
@@ -20,33 +22,6 @@ class DatabaseModule {
     });
   
     this.db.connect();
-  }
-
-  dateToDBString(date){
-    // ANNO
-    let stringDate = date.getFullYear() + "-";
-    
-    // MESE
-    if(date.getMonth() +1 < 10){
-      stringDate += "0" + (date.getMonth()+1).toString() + "-";
-    }
-    else{
-      stringDate += (date.getMonth()+1).toString() + "-";
-    }
-
-    // GIORNO
-    if(date.getDate() < 10){
-      stringDate += "0" + date.getDate();
-    }
-    else{
-      stringDate += date.getDate();
-    }
-
-    return stringDate;
-  }
-
-  DBdateToString(date){
-    return date.toISOString().split('T')[0];
   }
 
   isConnected(){
@@ -141,7 +116,7 @@ class DatabaseModule {
   }
 
   // Bilancio per l'anno diviso per conto e giorno
-  getBilancioPerContoAnnuoPerGiorno(anno, callback){
+  /*getBilancioPerContoAnnuoPerGiorno(anno, callback){
     let component = this;
     let beginYear = anno.toString() + '-01-01';
     let endYear = anno.toString() + '-12-31';
@@ -156,7 +131,7 @@ class DatabaseModule {
       for(let i = 0; i < conti.length; i++){
         conti[i].data = [];
         for(let j = 0; j < dayToCount; j++){
-          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100/*, new Date(dateBeginYear + (j * MSTOGG)).toString()*/]);
+          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100]);
         }
       }
       component.executeQueryFromFile('./queries/misc/transazioniCategorieFromToDate.sql', {"dateTimeStart": beginYear, "dateTimeEnd": endYear}, function(transazioni){
@@ -230,14 +205,14 @@ class DatabaseModule {
 
             if(index_contoFrom != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100/*, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()*/];
+                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100];
               }
             }
             //console.log("index_contoTo: " + index_contoTo);
             
             if(index_contoTo != -1){
               for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100/*, new Date((tmp_date + (j - index_day) * MSTOGG)).toString()*/];
+                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100];
               }
             }
           }
@@ -255,51 +230,170 @@ class DatabaseModule {
         });
       });
     });
+  }*/
+
+  // Bilancio per l'anno diviso per conto e giorno
+  getBilancioPerContoAnnuoPerGiorno(anno, callback){
+    let component = this;
+
+    let beginYear = new dbDate(anno.toString() + '-01-01');
+    let endYear = new dbDate(anno.toString() + '-12-31');
+    let endLastYear = new dbDate((anno - 1).toString() + '-12-31');
+    let dayToCount = (endYear.toMilliseconds() - beginYear.toMilliseconds()) / MSTOGG;
+    
+    component.getBilancioPerConto(endLastYear.toDateString(), function(conti){
+      conti[conti.length - 1].valore = 0;
+      for(let i = 0; i < conti.length; i++){
+        conti[i].data = {};
+        for(let j = 0; j < dayToCount; j++){
+          let tmp = beginYear.addDays(j);
+          conti[i].data[tmp.toDateString()] = ([tmp.toMilliseconds(), Math.round(conti[i].valore * 100) / 100]);
+        }
+      }
+      
+      component.executeQueryFromFile('./queries/misc/transazioniCategorieFromToDate.sql', {"dateTimeStart": beginYear.toDateString(), "dateTimeEnd": endYear.toDateString()}, function(transazioni){
+        component.executeQueryFromFile('./queries/transazioni/trasferimentiFromToDate.sql', {"dateTimeStart": beginYear.toDateString(), "dateTimeEnd": endYear.toDateString()}, function(trasferimenti){
+          for(let i = 0; i < trasferimenti.length; i++){
+            transazioni.push(trasferimenti[i]);
+          }
+
+          for(let i = 0; i < transazioni.length; i++){
+            if(transazioni[i].custom == true){
+              transazioni[i].dateTime = transazioni[i].dateTime;
+            }
+            else{
+              transazioni[i].dateTime = new dbDate(transazioni[i].dateTime);
+              transazioni[i].dateTime = transazioni[i].dateTime.toDateString();
+            }
+          }
+
+          for(let i = 0; i < transazioni.length - 1; i++){
+            for(let j = i + 1;j < transazioni.length; j++){
+              if(transazioni[i].dateTime > transazioni[j].dateTime){
+                let tmp = transazioni[i];
+                transazioni[i] = transazioni[j];
+                transazioni[j] = tmp;
+              }
+            }
+          }
+          
+          for(let i = 0; i < transazioni.length; i++){
+            let index_contoFrom = -1;
+            let index_contoTo = -1;
+            //console.log(transazioni[i]);
+
+            if(transazioni[i].idCategoria == null){
+              //console.log("Trasferimento");
+              // Trasferimento
+              for(let j = 0; j < conti.length; j++){
+                if(conti[j].idConto == transazioni[i].idContoFrom){
+                  conti[j].valore -= transazioni[i].importo;
+                  index_contoFrom = j;
+                }
+                else if(conti[j].idConto == transazioni[i].idContoTo){
+                  conti[j].valore += transazioni[i].importo;
+                  index_contoTo = j;
+                }
+              }
+              //console.log("valore from: " + conti[index_contoFrom].valore);
+
+              //console.log("valore to: " + conti[index_contoTo].valore);
+            } 
+            else{
+              //console.log("E/U");
+              for(let j = 0; j < conti.length; j++){
+                if(conti[j].idConto == transazioni[i].idContoFrom){
+                  index_contoFrom = j;
+                  if(transazioni[i].isUscita == 1){ //Uscita
+                    conti[j].valore -= transazioni[i].importo;
+                  }
+                  else if(transazioni[i].isEntrata == 1){ //Entrata
+                    conti[j].valore += transazioni[i].importo;
+                  }
+                }
+              }
+              //console.log("valore: " + conti[index_contoFrom].valore);
+            }
+            //console.log("index_contoFrom: " + index_contoFrom);
+
+            let tmp_date = new dbDate(transazioni[i].dateTime);
+            let index_day = (tmp_date.toMilliseconds()-beginYear.toMilliseconds()) / MSTOGG;
+
+            for(let j = index_day; j < dayToCount; j++){
+              if(index_contoFrom != -1){
+                conti[index_contoFrom].data[tmp_date.toDateString()] = [tmp_date.toMilliseconds(), Math.round(conti[index_contoFrom].valore * 100) / 100];
+              }
+            
+              if(index_contoTo != -1){
+                conti[index_contoTo].data[tmp_date.toDateString()] = [tmp_date.toMilliseconds(), Math.round(conti[index_contoTo].valore * 100) / 100];
+              }
+              tmp_date = tmp_date.addDays(1);
+            }
+            
+            //console.log("index_contoTo: " + index_contoTo);
+          }
+
+          //Set totale
+          for(let i = 0; i < conti.length - 1; i++){
+            for(let j = 0; j < dayToCount; j++){
+              conti[conti.length - 1].data[beginYear.addDays(j).toDateString()][1] += conti[i].data[beginYear.addDays(j).toDateString()][1];
+            }
+          }
+          for(let i = 0; i < dayToCount; i++){
+            conti[conti.length - 1].data[beginYear.addDays(i).toDateString()][1] = Math.round(conti[conti.length - 1].data[beginYear.addDays(i).toDateString()][1] * 100) / 100;
+          }
+          callback(conti);
+          
+        });
+      });
+    });
   }
 
   // Bilancio per l'anno diviso per conto e giorno con una stima del futuro dai ricorrenti
   // @todo non funziona, solo la prima ricorrenza funziona, le altre rompono tutto e il totale non è aggiornato
   getBilancioPerContoAnnuoPerGiornoConFuturo(anno, callback){
     let component = this;
-    let beginYear = anno.toString() + '-01-01';
-    let endYear = anno.toString() + '-12-31';
-    let endLastYear = (anno - 1).toString() + '-12-31';
-    let dateBeginYear = Date.parse(beginYear);
-    let dateEndYear = Date.parse(endYear);
-    let dayToCount = (dateEndYear - dateBeginYear) / MSTOGG;
+
+    let beginYear = new dbDate(anno.toString() + '-01-01');
+    let endYear = new dbDate(anno.toString() + '-12-31');
+    let dayToCount = (endYear.toMilliseconds() - beginYear.toMilliseconds()) / MSTOGG;
 
     component.getBilancioPerContoAnnuoPerGiorno(anno, function(conti){
       component.executeQueryFromFile('./queries/ricorrenti/ricorrentiCategorie.sql', {}, function(ricorrenti){
-        //console.log("just before for");
         for(let i = 0; i < ricorrenti.length; i++){
-          //console.log(ricorrenti[i]);
-          for(let j = 0; j < conti.length; j++){
+          console.log(ricorrenti[i]);
+          let index_conto = -1;
+
+          for(let j = 0; j < conti.length && index_conto == -1; j++){
             if(conti[j].idConto == ricorrenti[i].idContoFrom){
-              let now = new Date();
-              now.setMonth(now.getMonth() + 1);
-              now.setDate(1);
+              index_conto = j;
+            }
+          }
 
-              while(now.getMonth() != 0){
-                if(ricorrenti[i].isEntrata == 1){
-                  conti[j].valore += ricorrenti[i].importo;
-                  conti[conti.length - 1].valore += ricorrenti[i].importo;
-                }
-                else if(ricorrenti[i].isUscita == 1){
-                  conti[j].valore -= ricorrenti[i].importo;
-                  conti[conti.length - 1].valore -= ricorrenti[i].importo;
-                }
-                //console.log(conti[j].valore);
-                //console.log(now.toISOString());
-                let index_day = Math.round((now - dateBeginYear) / MSTOGG);
-                //console.log(index_day);
-                for(let k = index_day; k < dayToCount; k++){
-                  //console.log("saved");
-                  conti[j].data[k] = [conti[j].data[k][0], Math.round(conti[j].valore * 100) / 100];
-                  conti[conti.length - 1].data[k] = [conti[j].data[k][0], 0 /* Math.round(conti[conti.length-1].valore * 100) / 100*/];
-                }
+          if(index_conto != -1){
+            let now = new dbDate(beginYear.toDateString());
+            while(now.toDateString() < new dbDate().toDateString()){
+              now = now.addMonth(1);
+            }
 
-                now.setMonth(now.getMonth() + 1);
+            while(now.toDateString() < endYear.toDateString()){
+              let delta = 0;
+              if(ricorrenti[i].isEntrata == 1){
+                delta = ricorrenti[i].importo;
               }
+              else if(ricorrenti[i].isUscita == 1){
+                delta = ricorrenti[i].importo * -1;
+              }
+
+              let cycleDate = new dbDate(now.toDateString());
+              while(cycleDate.toDateString() < endYear.toDateString()){
+                conti[index_conto].data[cycleDate.toDateString()][1] = Math.round((conti[index_conto].data[cycleDate.toDateString()][1] + delta) * 100 ) /100;
+                conti[conti.length - 1].data[cycleDate.toDateString()][1] = Math.round((conti[conti.length - 1].data[cycleDate.toDateString()][1] + delta) * 100 ) /100;
+
+                cycleDate = cycleDate.addDays(1);
+              }
+
+              now = now.addMonth(1);
             }
           }
         }
@@ -339,15 +433,6 @@ class DatabaseModule {
           }
           callback(mesiSuperati);
       });
-    });
-  }
-
-  // Inserisci una nuova transazione
-  insertTransazioneNow(importo, idCategoria, idContoFrom, idContoTo, nota, descrizione, callback){
-    let sql = "INSERT INTO Transazioni (dateTime, importo, idCategoria, idContoFrom, idContoTo, idCurrency, nota, descrizione) VALUES (NOW(), " + importo + ", " + idCategoria + ", " + idContoFrom + ", " + idContoTo + ", 1, '" + nota + "', '" + descrizione + "');";
-
-    this.executeQuery(sql, function(results){
-      callback(results);
     });
   }
 
@@ -426,6 +511,15 @@ class DatabaseModule {
   getUsciteMensiliUltimoAnno(callback){
     let component = this;
     component.executeQueryFromFile('./queries/misc/usciteMensiliUltimoAnno.sql', {'anno': 2023}, function(results){
+      callback(results);
+    });
+  }
+
+  // Inserisci una nuova transazione
+  insertTransazioneNow(importo, idCategoria, idContoFrom, idContoTo, nota, descrizione, callback){
+    let sql = "INSERT INTO Transazioni (dateTime, importo, idCategoria, idContoFrom, idContoTo, idCurrency, nota, descrizione) VALUES (NOW(), " + importo + ", " + idCategoria + ", " + idContoFrom + ", " + idContoTo + ", 1, '" + nota + "', '" + descrizione + "');";
+
+    this.executeQuery(sql, function(results){
       callback(results);
     });
   }
