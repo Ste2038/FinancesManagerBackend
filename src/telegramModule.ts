@@ -1,13 +1,17 @@
 const TelegramBot  = require('node-telegram-bot-api');
-const DatabaseModule = require('./databaseModule');
 
-class TelegramModule {
-  master_id = 0;
-  bot = null;
-  fsmData = [];
-  database = null;
 
-  constructor(token, master_id, database, sendInitialMessage = false){
+import { DatabaseModule } from './databaseModule';
+
+const ANNO  = 2023;
+
+export class TelegramModule {
+  master_id: number = 0;
+  bot: any = null;
+  fsmData: any = [];
+  database: DatabaseModule;
+
+  constructor(token:string, master_id:number, database:DatabaseModule, sendInitialMessage:boolean = false){
     let component = this;
     this.bot = new TelegramBot(token, {polling: true});
     
@@ -50,7 +54,7 @@ class TelegramModule {
 
           case "/bilancio":
           case "bilancio":
-            component.database.getBilancioPerConto(function(bilancio){
+            component.database.getBilancioPerConto(ANNO, function(bilancio){
               if(bilancio.status == 'error'){
                 component.bot.sendMessage(msg.chat.id, "Errore nel recupero del bilancio");
               }
@@ -73,13 +77,13 @@ class TelegramModule {
               switch(component.fsmData[msg.chat.id].step){
                 case 1:
                   await component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, async function(categorieParent){
-                    let inline_keyboard = [];
+                    let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
 
                     for(let i = 0; i < categorieParent.length; i++){
                       if(i % 3 == 0){
                         inline_keyboard[i/3] = [];
                       }
-                      inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
+                      inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
                     }
 
                     component.fsmData[msg.chat.id].importo = importo;
@@ -97,13 +101,13 @@ class TelegramModule {
 
                 case 2:
                   await component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', {}, async function(categorieParent){
-                    let inline_keyboard = [];
+                    let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
 
                     for(let i = 0; i < categorieParent.length; i++){
                       if(i % 3 == 0){
                         inline_keyboard[i/3] = [];
                       }
-                      inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
+                      inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
                     }
 
                     component.fsmData[msg.chat.id].importo = importo;
@@ -121,12 +125,12 @@ class TelegramModule {
 
                 case 3:
                   await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-                    let inline_keyboard = [];
+                    let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
                     for(let i = 0; i < conti.length; i++){
                       if(i % 3 == 0){
                         inline_keyboard[i/3] = [];
                       }
-                      inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                      inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                     }
       
                     component.fsmData[msg.chat.id].importo = importo;
@@ -171,16 +175,15 @@ class TelegramModule {
             }
             
             await component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", {"idParent": parseInt(msg.data)}, async function(categorieChild){
-              let inline_keyboard = [];
+              let inline_keyboard: { text: any; callback_data: any; }[][] = [];
 
               if(categorieChild.length == 0){
                 await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-                  let inline_keyboard = [];
                   for(let i = 0; i < conti.length; i++){
                     if(i % 3 == 0){
                       inline_keyboard[i/3] = [];
                     }
-                    inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                    inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                   }
     
                   component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
@@ -200,7 +203,7 @@ class TelegramModule {
                   if(i % 3 == 0){
                     inline_keyboard[i/3] = [];
                   }
-                  inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
+                  inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
                 }
 
                 component.fsmData[msg.message.chat.id].idCategoriaParent = parseInt(msg.data);
@@ -230,12 +233,12 @@ class TelegramModule {
             }
 
             await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-              let inline_keyboard = [];
+              let inline_keyboard: { text: any; callback_data: any; }[][] = [];
               for(let i = 0; i < conti.length; i++){
                 if(i % 3 == 0){
                   inline_keyboard[i/3] = [];
                 }
-                inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
               }
 
               component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
@@ -263,7 +266,7 @@ class TelegramModule {
               }
             }
 
-            let inline_keyboard = [];
+            let inline_keyboard: { text: any; callback_data: any; }[][] = [];
             inline_keyboard[0] = [];
             inline_keyboard[0][0] = { text: "Fatto ", callback_data: "-1" };
 
@@ -302,16 +305,15 @@ class TelegramModule {
             }
 
             await component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", {"idParent": parseInt(msg.data)}, async function(categorieChild){
-              let inline_keyboard = [];
+              let inline_keyboard: { text: any; callback_data: any; }[][] = [];
 
               if(categorieChild.length == 0){
                 await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-                  let inline_keyboard = [];
                   for(let i = 0; i < conti.length; i++){
                     if(i % 3 == 0){
                       inline_keyboard[i/3] = [];
                     }
-                    inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                    inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                   }
     
                   component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
@@ -331,7 +333,7 @@ class TelegramModule {
                   if(i % 3 == 0){
                     inline_keyboard[i/3] = [];
                   }
-                  inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
+                  inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
                 }
 
                 component.fsmData[msg.message.chat.id].idCategoriaParent = parseInt(msg.data);
@@ -361,12 +363,12 @@ class TelegramModule {
             }
 
             await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-              let inline_keyboard = [];
+              let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
               for(let i = 0; i < conti.length; i++){
                 if(i % 3 == 0){
                   inline_keyboard[i/3] = [];
                 }
-                inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
               }
 
               component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
@@ -394,7 +396,7 @@ class TelegramModule {
               }
             }
 
-            let inline_keyboard = [];
+            let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
             inline_keyboard[0] = [];
             inline_keyboard[0][0] = { text: "Fatto ", callback_data: "-1" };
 
@@ -432,12 +434,12 @@ class TelegramModule {
               }
             }
 
-            let inline_keyboard = [];
+            let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
             for(let i = 0; i < conti.length; i++){
               if(i % 3 == 0){
                 inline_keyboard[i/3] = [];
               }
-              inline_keyboard[parseInt(i/3)][parseInt(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+              inline_keyboard[Math.round(i/3)][Math.round(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
             }
 
             component.fsmData[msg.message.chat.id].idContoFrom = parseInt(msg.data);
@@ -464,7 +466,7 @@ class TelegramModule {
               }
             }
 
-            let inline_keyboard = [];
+            let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
             inline_keyboard[0] = [];
             inline_keyboard[0][0] = { text: "Fatto ", callback_data: "-1" };
 
@@ -515,5 +517,3 @@ class TelegramModule {
       return await this.bot.sendMessage(id, message, opts);
   }
 }
-
-module.exports = TelegramModule;

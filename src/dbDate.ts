@@ -1,9 +1,9 @@
 const MSTOGG = 1000 * 60 * 60 * 24;
 
-class dbDate{
-  date;
+export class dbDate{
+  date: Date;
 
-  constructor(old = null){
+  constructor(old: any = null){
     //console.log(old);
     if (old == null){
       this.date = new Date();
@@ -24,8 +24,8 @@ class dbDate{
     }
   }
 
-  toDateString(){
-    let out = this.date.getFullYear().toString() + "-";
+  toDateString(): string{
+    let out:string = this.date.getFullYear().toString() + "-";
 
     if(this.date.getMonth() + 1 < 10){
       out += "0" + (this.date.getMonth()+1).toString() + "-";
@@ -44,21 +44,19 @@ class dbDate{
     return out;
   }
 
-  toMilliseconds(){
+  toMilliseconds():number{
     return this.date.valueOf();
   }
 
-  addDays(days){
+  addDays(days: number): dbDate{
     return new dbDate(this.date.valueOf() + (days * MSTOGG));  
   }
 
-  getMonth(){
+  getMonth(): number{
     return this.date.getMonth() + 1;
   }
   
-  addMonth(months){
+  addMonth(months: number): dbDate{
     return new dbDate(this.date.setMonth(this.date.getMonth() + months));
   }
 }
-
-module.exports = dbDate;

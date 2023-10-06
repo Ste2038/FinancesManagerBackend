@@ -1,12 +1,15 @@
 const mysql = require('mysql2');
 const fs = require('fs');
 
-const dbDate = require('./dbDate');
+import { dbDate } from './dbDate';
 
 const MSTOGG = 1000 * 60 * 60 * 24;
 
-class DatabaseModule {
-  constructor(db_host, db_user, db_pass, db_name){
+export class DatabaseModule{
+  private db: any;
+  private is_connected: boolean = false;
+  
+  constructor(db_host: string, db_user: string, db_pass: string , db_name: string){
     this.db = mysql.createConnection({
       host: db_host,
       user: db_user,
@@ -24,11 +27,11 @@ class DatabaseModule {
     this.db.connect();
   }
 
-  isConnected(){
+  get isConnected(){
     return this.is_connected;
   }
 
-  executeQuery(query, callback){
+  executeQuery(query: string, callback: Function){
     if(!this.is_connected){
       console.log("DB: Not connected!");
       return;
@@ -41,8 +44,8 @@ class DatabaseModule {
     });
   }
 
-  executeQueryFromFile(queryFilePath, dataImport, callback){
-    let possibleTags = ["idParent", "dateTimeStart", "dateTimeEnd", "anno"];
+  executeQueryFromFile(queryFilePath:string, dataImport:any, callback:Function){
+    let possibleTags:string[] = ["idParent", "dateTimeStart", "dateTimeEnd", "anno"];
 
     //Leggi file
     fs.readFile(queryFilePath, 'utf8', (err, data) => {
@@ -114,123 +117,6 @@ class DatabaseModule {
       });
     });
   }
-
-  // Bilancio per l'anno diviso per conto e giorno
-  /*getBilancioPerContoAnnuoPerGiorno(anno, callback){
-    let component = this;
-    let beginYear = anno.toString() + '-01-01';
-    let endYear = anno.toString() + '-12-31';
-    let endLastYear = (anno - 1).toString() + '-12-31';
-    let dateBeginYear = Date.parse(beginYear);
-    let dateEndYear = Date.parse(endYear);
-    let dayToCount = (dateEndYear - dateBeginYear) / MSTOGG;
-
-
-    component.getBilancioPerConto(endLastYear, function(conti){
-      conti[conti.length - 1].valore = 0;
-      for(let i = 0; i < conti.length; i++){
-        conti[i].data = [];
-        for(let j = 0; j < dayToCount; j++){
-          conti[i].data.push([(dateBeginYear + (j * MSTOGG)), Math.round(conti[i].valore * 100) / 100]);
-        }
-      }
-      component.executeQueryFromFile('./queries/misc/transazioniCategorieFromToDate.sql', {"dateTimeStart": beginYear, "dateTimeEnd": endYear}, function(transazioni){
-        component.executeQueryFromFile('./queries/transazioni/trasferimentiFromToDate.sql', {"dateTimeStart": beginYear, "dateTimeEnd": endYear}, function(trasferimenti){
-          for(let i = 0; i < trasferimenti.length; i++){
-            transazioni.push(trasferimenti[i]);
-          }
-
-          for(let i = 0; i < transazioni.length; i++){
-            if(transazioni[i].custom == true){
-              transazioni[i].dateTime = transazioni[i].dateTime;
-            }
-            else{
-              transazioni[i].dateTime = component.DBdateToString(transazioni[i].dateTime);
-            }
-          }
-
-          for(let i = 0; i < transazioni.length - 1; i++){
-            for(let j = i + 1;j < transazioni.length; j++){
-              if(transazioni[i].dateTime > transazioni[j].dateTime){
-                let tmp = transazioni[i];
-                transazioni[i] = transazioni[j];
-                transazioni[j] = tmp;
-              }
-            }
-          }
-          
-          for(let i = 0; i < transazioni.length; i++){
-            
-            let index_contoFrom = -1;
-            let index_contoTo = -1;
-            //console.log(transazioni[i]);
-
-            if(transazioni[i].idCategoria == null){
-              //console.log("Trasferimento");
-              // Trasferimento
-              for(let j = 0; j < conti.length; j++){
-                if(conti[j].idConto == transazioni[i].idContoFrom){
-                  conti[j].valore -= transazioni[i].importo;
-                  index_contoFrom = j;
-                }
-                else if(conti[j].idConto == transazioni[i].idContoTo){
-                  conti[j].valore += transazioni[i].importo;
-                  index_contoTo = j;
-                }
-              }
-
-              //console.log("valore from: " + conti[index_contoFrom].valore);
-
-              //console.log("valore to: " + conti[index_contoTo].valore);
-            } 
-            else{
-              //console.log("E/U");
-              for(let j = 0; j < conti.length; j++){
-                if(conti[j].idConto == transazioni[i].idContoFrom){
-                  index_contoFrom = j;
-                  if(transazioni[i].isUscita == 1){ //Uscita
-                    conti[j].valore -= transazioni[i].importo;
-                  }
-                  else if(transazioni[i].isEntrata == 1){ //Entrata
-                    conti[j].valore += transazioni[i].importo;
-                  }
-                }
-              }
-              //console.log("valore: " + conti[index_contoFrom].valore);
-            }
-            //console.log("index_contoFrom: " + index_contoFrom);
-
-            let tmp_date = Date.parse(transazioni[i].dateTime);
-            let index_day = (tmp_date-dateBeginYear) / MSTOGG;
-
-            if(index_contoFrom != -1){
-              for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoFrom].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoFrom].valore * 100) / 100];
-              }
-            }
-            //console.log("index_contoTo: " + index_contoTo);
-            
-            if(index_contoTo != -1){
-              for(let j = index_day; j < dayToCount; j++){
-                conti[index_contoTo].data[j] = [(tmp_date + (j - index_day) * MSTOGG), Math.round(conti[index_contoTo].valore * 100) / 100];
-              }
-            }
-          }
-
-          //Set totale
-          for(let i = 0; i < conti.length - 1; i++){
-            for(let j = 0; j < dayToCount; j++){
-              conti[conti.length - 1].data[j][1] += conti[i].data[j][1];
-            }
-          }
-          for(let i = 0; i < dayToCount; i++){
-            conti[conti.length - 1].data[i][1] = Math.round(conti[conti.length - 1].data[i][1] * 100) / 100;
-          }
-          callback(conti);
-        });
-      });
-    });
-  }*/
 
   // Bilancio per l'anno diviso per conto e giorno
   getBilancioPerContoAnnuoPerGiorno(anno, callback){
@@ -524,5 +410,3 @@ class DatabaseModule {
     });
   }
 }
-
-module.exports = DatabaseModule;
