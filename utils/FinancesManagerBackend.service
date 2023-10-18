@@ -1,0 +1,16 @@
+[Unit]
+Description= FinancesManager Backend
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/adminste/develop/FinancesManagerBackend
+ExecStart=/home/adminste/.nvm/versions/node/v16.20.0/bin/npm deploy
+
+Restart=on-failure
+# Other Restart options: always, on-abort, etc
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
