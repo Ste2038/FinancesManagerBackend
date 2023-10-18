@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc ./src/index.ts --outDir ./dist",
     "start": "npx tsc ./src/index.ts --outDir ./dist && node ./dist/index.js",
-    "deply": "git pull && npx tsc ./src/index.ts --outDir ./dist && node ./dist/index.js"
+    "deploy": "git pull && npx tsc ./src/index.ts --outDir ./dist && node ./dist/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
