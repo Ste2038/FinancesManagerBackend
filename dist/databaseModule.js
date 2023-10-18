@@ -222,7 +222,7 @@ var DatabaseModule = /** @class */ (function () {
         component.getBilancioPerContoAnnuoPerGiorno(anno, function (conti) {
             component.executeQueryFromFile('./queries/ricorrenti/ricorrentiCategorie.sql', {}, function (ricorrenti) {
                 for (var i = 0; i < ricorrenti.length; i++) {
-                    console.log(ricorrenti[i]);
+                    //console.log(ricorrenti[i]);
                     var index_conto = -1;
                     for (var j = 0; j < conti.length && index_conto == -1; j++) {
                         if (conti[j].idConto == ricorrenti[i].idContoFrom) {

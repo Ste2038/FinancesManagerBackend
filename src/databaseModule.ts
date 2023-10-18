@@ -247,7 +247,7 @@ export class DatabaseModule{
     component.getBilancioPerContoAnnuoPerGiorno(anno, function(conti){
       component.executeQueryFromFile('./queries/ricorrenti/ricorrentiCategorie.sql', {}, function(ricorrenti){
         for(let i = 0; i < ricorrenti.length; i++){
-          console.log(ricorrenti[i]);
+          //console.log(ricorrenti[i]);
           let index_conto = -1;
 
           for(let j = 0; j < conti.length && index_conto == -1; j++){

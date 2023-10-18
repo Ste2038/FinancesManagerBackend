@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TelegramModule = void 0;
 var TelegramBot = require('node-telegram-bot-api');
+var dbDate_1 = require("./dbDate");
 var ANNO = 2023;
 var TelegramModule = /** @class */ (function () {
     function TelegramModule(token, master_id, database, sendInitialMessage) {
@@ -54,53 +55,22 @@ var TelegramModule = /** @class */ (function () {
             this.sendInitialMessage(this.master_id);
         }
         this.bot.on('message', function (msg) { return __awaiter(_this, void 0, void 0, function () {
-            var _a, _b, _c, _d, doneAnything, importo_1, _e;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
+            var text, _a, _b, _c, doneAnything, importo_1, queryPath, nextStep_1, message_1;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         console.log("From " + msg.chat.id + " : " + msg.text);
-                        if (!(msg.chat.id == component.master_id)) return [3 /*break*/, 19];
-                        _a = msg.text.toLowerCase();
-                        switch (_a) {
-                            case "/start": return [3 /*break*/, 1];
-                            case "spesa": return [3 /*break*/, 2];
-                            case "guadagno": return [3 /*break*/, 4];
-                            case "trasferimento": return [3 /*break*/, 6];
-                            case "agg. conto": return [3 /*break*/, 8];
-                            case "/bilancio": return [3 /*break*/, 9];
-                            case "bilancio": return [3 /*break*/, 9];
-                        }
-                        return [3 /*break*/, 10];
-                    case 1:
+                        if (!(msg.chat.id == component.master_id)) return [3 /*break*/, 16];
+                        text = msg.text.toLowerCase();
+                        if (!(text == "start")) return [3 /*break*/, 1];
                         component.sendInitialMessage(msg.chat.id);
-                        return [3 /*break*/, 18];
+                        return [3 /*break*/, 15];
+                    case 1:
+                        if (!(text == "agg. conto")) return [3 /*break*/, 2];
+                        return [3 /*break*/, 15];
                     case 2:
-                        component.fsmData[msg.chat.id] = {};
-                        component.fsmData[msg.chat.id].step = 1;
-                        _b = component.fsmData[msg.chat.id];
-                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "🛒 Spesa\nImporto?")];
-                    case 3:
-                        _b.lastMessage = _f.sent();
-                        return [3 /*break*/, 18];
-                    case 4:
-                        component.fsmData[msg.chat.id] = {};
-                        component.fsmData[msg.chat.id].step = 2;
-                        _c = component.fsmData[msg.chat.id];
-                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "🤑 Guadagno\nImporto?")];
-                    case 5:
-                        _c.lastMessage = _f.sent();
-                        return [3 /*break*/, 18];
-                    case 6:
-                        component.fsmData[msg.chat.id] = {};
-                        component.fsmData[msg.chat.id].step = 3;
-                        _d = component.fsmData[msg.chat.id];
-                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "➡️ Trasferimento\nImporto?")];
-                    case 7:
-                        _d.lastMessage = _f.sent();
-                        return [3 /*break*/, 18];
-                    case 8: return [3 /*break*/, 18];
-                    case 9:
-                        component.database.getBilancioPerConto(ANNO, function (bilancio) {
+                        if (!(text == "/bilancio" || text == "bilancio")) return [3 /*break*/, 3];
+                        component.database.getBilancioPerConto(new dbDate_1.dbDate().toDateString(), function (bilancio) {
                             if (bilancio.status == 'error') {
                                 component.bot.sendMessage(msg.chat.id, "Errore nel recupero del bilancio");
                             }
@@ -112,133 +82,134 @@ var TelegramModule = /** @class */ (function () {
                                 component.bot.sendMessage(msg.chat.id, msgText);
                             }
                         });
-                        return [3 /*break*/, 18];
+                        return [3 /*break*/, 15];
+                    case 3:
+                        if (!(text == "spesa" || text == "guadagno" || text == "trasferimento")) return [3 /*break*/, 10];
+                        component.fsmData[msg.chat.id] = {};
+                        if (!(text == "spesa")) return [3 /*break*/, 5];
+                        component.fsmData[msg.chat.id].step = 1;
+                        _a = component.fsmData[msg.chat.id];
+                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "🛒 Spesa\nImporto?")];
+                    case 4:
+                        _a.lastMessage = _d.sent();
+                        return [3 /*break*/, 9];
+                    case 5:
+                        if (!(text == "guadagno")) return [3 /*break*/, 7];
+                        component.fsmData[msg.chat.id].step = 2;
+                        _b = component.fsmData[msg.chat.id];
+                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "🤑 Guadagno\nImporto?")];
+                    case 6:
+                        _b.lastMessage = _d.sent();
+                        return [3 /*break*/, 9];
+                    case 7:
+                        if (!(text == "trasferimento")) return [3 /*break*/, 9];
+                        component.fsmData[msg.chat.id].step = 3;
+                        _c = component.fsmData[msg.chat.id];
+                        return [4 /*yield*/, component.bot.sendMessage(msg.chat.id, "➡️ Trasferimento\nImporto?")];
+                    case 8:
+                        _c.lastMessage = _d.sent();
+                        _d.label = 9;
+                    case 9: return [3 /*break*/, 15];
                     case 10:
                         doneAnything = false;
-                        if (!parseInt(msg.text)) return [3 /*break*/, 17];
+                        if (!parseInt(msg.text)) return [3 /*break*/, 14];
                         importo_1 = parseInt(msg.text);
-                        _e = component.fsmData[msg.chat.id].step;
-                        switch (_e) {
-                            case 1: return [3 /*break*/, 11];
-                            case 2: return [3 /*break*/, 13];
-                            case 3: return [3 /*break*/, 15];
+                        if (!(component.fsmData[msg.chat.id].step == 1 || component.fsmData[msg.chat.id].step == 2)) return [3 /*break*/, 12];
+                        queryPath = void 0;
+                        if (component.fsmData[msg.chat.id].step == 1) {
+                            queryPath = './queries/categorie/uscitaParent.sql';
+                            nextStep_1 = 11;
+                            message_1 = "🛒 Spesa\nImporto: " + importo_1 + "€\nCategoria?";
                         }
-                        return [3 /*break*/, 17];
-                    case 11: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, function (categorieParent) {
-                            return __awaiter(this, void 0, void 0, function () {
-                                var inline_keyboard, i;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0:
-                                            inline_keyboard = [];
-                                            for (i = 0; i < categorieParent.length; i++) {
-                                                if (i % 3 == 0) {
-                                                    inline_keyboard[i / 3] = [];
+                        else if (component.fsmData[msg.chat.id].step == 2) {
+                            queryPath = './queries/categorie/entrataParent.sql';
+                            nextStep_1 = 21;
+                            message_1 = "🤑 Guadagno\nImporto: " + importo_1 + "€\nCategoria?";
+                        }
+                        return [4 /*yield*/, component.database.executeQueryFromFile(queryPath, {}, function (categorieParent) {
+                                return __awaiter(this, void 0, void 0, function () {
+                                    var inline_keyboard, i;
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                inline_keyboard = [];
+                                                for (i = 0; i < categorieParent.length; i++) {
+                                                    if (i % 3 == 0) {
+                                                        inline_keyboard[i / 3] = [];
+                                                    }
+                                                    inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
                                                 }
-                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
-                                            }
-                                            component.fsmData[msg.chat.id].importo = importo_1;
-                                            component.fsmData[msg.chat.id].step = 11;
-                                            return [4 /*yield*/, component.bot.editMessageText("🛒 Spesa\nImporto: " + importo_1 + "€\nCategoria?", {
-                                                    chat_id: msg.chat.id,
-                                                    message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
-                                                    reply_markup: {
-                                                        inline_keyboard: inline_keyboard,
-                                                    },
-                                                })];
-                                        case 1:
-                                            _a.sent();
-                                            return [2 /*return*/];
-                                    }
+                                                component.fsmData[msg.chat.id].importo = importo_1;
+                                                component.fsmData[msg.chat.id].step = nextStep_1;
+                                                return [4 /*yield*/, component.bot.editMessageText(message_1, {
+                                                        chat_id: msg.chat.id,
+                                                        message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
+                                                        reply_markup: {
+                                                            inline_keyboard: inline_keyboard,
+                                                        },
+                                                    })];
+                                            case 1:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
                                 });
-                            });
-                        })];
+                            })];
+                    case 11:
+                        _d.sent();
+                        doneAnything = true;
+                        return [3 /*break*/, 14];
                     case 12:
-                        _f.sent();
-                        doneAnything = true;
-                        return [3 /*break*/, 17];
-                    case 13: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', {}, function (categorieParent) {
-                            return __awaiter(this, void 0, void 0, function () {
-                                var inline_keyboard, i;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0:
-                                            inline_keyboard = [];
-                                            for (i = 0; i < categorieParent.length; i++) {
-                                                if (i % 3 == 0) {
-                                                    inline_keyboard[i / 3] = [];
+                        if (!(component.fsmData[msg.chat.id].step == 3)) return [3 /*break*/, 14];
+                        return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
+                                return __awaiter(this, void 0, void 0, function () {
+                                    var inline_keyboard, i;
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                inline_keyboard = [];
+                                                for (i = 0; i < conti.length; i++) {
+                                                    if (i % 3 == 0) {
+                                                        inline_keyboard[i / 3] = [];
+                                                    }
+                                                    inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                                                 }
-                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: categorieParent[i].nome, callback_data: categorieParent[i].idCategoria };
-                                            }
-                                            component.fsmData[msg.chat.id].importo = importo_1;
-                                            component.fsmData[msg.chat.id].step = 21;
-                                            return [4 /*yield*/, component.bot.editMessageText("🤑 Guadagno\nImporto: " + importo_1 + "€\nCategoria?", {
-                                                    chat_id: msg.chat.id,
-                                                    message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
-                                                    reply_markup: {
-                                                        inline_keyboard: inline_keyboard,
-                                                    },
-                                                })];
-                                        case 1:
-                                            _a.sent();
-                                            return [2 /*return*/];
-                                    }
+                                                component.fsmData[msg.chat.id].importo = importo_1;
+                                                component.fsmData[msg.chat.id].step = 31;
+                                                return [4 /*yield*/, component.bot.editMessageText("➡️ Trasferimento\nImporto: " + importo_1 + "€\nConto from?", {
+                                                        chat_id: msg.chat.id,
+                                                        message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
+                                                        reply_markup: {
+                                                            inline_keyboard: inline_keyboard,
+                                                        },
+                                                    })];
+                                            case 1:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
                                 });
-                            });
-                        })];
+                            })];
+                    case 13:
+                        _d.sent();
+                        doneAnything = true;
+                        _d.label = 14;
                     case 14:
-                        _f.sent();
-                        doneAnything = true;
-                        return [3 /*break*/, 17];
-                    case 15: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
-                            return __awaiter(this, void 0, void 0, function () {
-                                var inline_keyboard, i;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0:
-                                            inline_keyboard = [];
-                                            for (i = 0; i < conti.length; i++) {
-                                                if (i % 3 == 0) {
-                                                    inline_keyboard[i / 3] = [];
-                                                }
-                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
-                                            }
-                                            component.fsmData[msg.chat.id].importo = importo_1;
-                                            component.fsmData[msg.chat.id].step = 31;
-                                            return [4 /*yield*/, component.bot.editMessageText("➡️ Trasferimento\nImporto: " + importo_1 + "€\nConto from?", {
-                                                    chat_id: msg.chat.id,
-                                                    message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
-                                                    reply_markup: {
-                                                        inline_keyboard: inline_keyboard,
-                                                    },
-                                                })];
-                                        case 1:
-                                            _a.sent();
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            });
-                        })];
-                    case 16:
-                        _f.sent();
-                        doneAnything = true;
-                        return [3 /*break*/, 17];
-                    case 17:
                         if (!doneAnything)
                             component.sendMessage(msg.chat.id, "Non capisco, mi dispiace!");
-                        _f.label = 18;
-                    case 18: return [3 /*break*/, 20];
-                    case 19:
+                        _d.label = 15;
+                    case 15: return [3 /*break*/, 17];
+                    case 16:
                         component.sendMessage(msg.chat.id, "Clearly this is not your place to be.");
                         component.sendMessage(component.master_id, "Qualcuno sta cercando di accedere: " + msg.chat.id);
-                        _f.label = 20;
-                    case 20: return [2 /*return*/];
+                        _d.label = 17;
+                    case 17: return [2 /*return*/];
                 }
             });
         }); });
         this.bot.on("polling_error", function (err) { return console.log(err); });
         this.bot.on("callback_query", function (msg) { return __awaiter(_this, void 0, void 0, function () {
-            var _a;
+            var _a, queryPathParent, queryPathChild_1, nextStepWChild_1, nextStepNoChild_1, message;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -246,105 +217,123 @@ var TelegramModule = /** @class */ (function () {
                         _a = component.fsmData[msg.message.chat.id].step;
                         switch (_a) {
                             case 11: return [3 /*break*/, 1];
+                            case 21: return [3 /*break*/, 1];
                             case 12: return [3 /*break*/, 3];
                             case 13: return [3 /*break*/, 5];
                             case 14: return [3 /*break*/, 7];
-                            case 21: return [3 /*break*/, 9];
-                            case 22: return [3 /*break*/, 11];
-                            case 23: return [3 /*break*/, 13];
-                            case 24: return [3 /*break*/, 15];
-                            case 31: return [3 /*break*/, 17];
-                            case 32: return [3 /*break*/, 19];
-                            case 33: return [3 /*break*/, 21];
+                            case 22: return [3 /*break*/, 9];
+                            case 23: return [3 /*break*/, 11];
+                            case 24: return [3 /*break*/, 13];
+                            case 31: return [3 /*break*/, 15];
+                            case 32: return [3 /*break*/, 17];
+                            case 33: return [3 /*break*/, 19];
                         }
-                        return [3 /*break*/, 23];
-                    case 1: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/categorie/uscitaParent.sql', {}, function (categorieParent) {
-                            return __awaiter(this, void 0, void 0, function () {
-                                var nomeParent, i;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0:
-                                            for (i = 0; i < categorieParent.length; i++) {
-                                                if (categorieParent[i].idCategoria == msg.data) {
-                                                    nomeParent = categorieParent[i].nome;
-                                                    break;
+                        return [3 /*break*/, 21];
+                    case 1:
+                        queryPathParent = void 0, message = void 0;
+                        if (component.fsmData[msg.message.chat.id].step == 11) {
+                            queryPathParent = './queries/categorie/uscitaParent.sql';
+                            queryPathChild_1 = './queries/categorie/uscitaChild.sql';
+                            nextStepWChild_1 = 12;
+                            nextStepNoChild_1 = 13;
+                            message = "🛒 Spesa";
+                        }
+                        else if (component.fsmData[msg.message.chat.id].step == 21) {
+                            queryPathParent = './queries/categorie/entrataParent.sql';
+                            queryPathChild_1 = './queries/categorie/entrataChild.sql';
+                            nextStepWChild_1 = 22;
+                            nextStepNoChild_1 = 23;
+                            message = "🤑 Guadagno";
+                        }
+                        return [4 /*yield*/, component.database.executeQueryFromFile(queryPathParent, {}, function (categorieParent) {
+                                return __awaiter(this, void 0, void 0, function () {
+                                    var nomeParent, i;
+                                    return __generator(this, function (_a) {
+                                        switch (_a.label) {
+                                            case 0:
+                                                for (i = 0; i < categorieParent.length; i++) {
+                                                    if (categorieParent[i].idCategoria == msg.data) {
+                                                        nomeParent = categorieParent[i].nome;
+                                                        break;
+                                                    }
                                                 }
-                                            }
-                                            return [4 /*yield*/, component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", { "idParent": parseInt(msg.data) }, function (categorieChild) {
-                                                    return __awaiter(this, void 0, void 0, function () {
-                                                        var inline_keyboard, i;
-                                                        return __generator(this, function (_a) {
-                                                            switch (_a.label) {
-                                                                case 0:
-                                                                    inline_keyboard = [];
-                                                                    if (!(categorieChild.length == 0)) return [3 /*break*/, 2];
-                                                                    return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
-                                                                            return __awaiter(this, void 0, void 0, function () {
-                                                                                var i;
-                                                                                return __generator(this, function (_a) {
-                                                                                    switch (_a.label) {
-                                                                                        case 0:
-                                                                                            for (i = 0; i < conti.length; i++) {
-                                                                                                if (i % 3 == 0) {
-                                                                                                    inline_keyboard[i / 3] = [];
+                                                return [4 /*yield*/, component.database.executeQueryFromFile(queryPathChild_1, { "idParent": parseInt(msg.data) }, function (categorieChild) {
+                                                        return __awaiter(this, void 0, void 0, function () {
+                                                            var inline_keyboard, message, nextStep, i;
+                                                            return __generator(this, function (_a) {
+                                                                switch (_a.label) {
+                                                                    case 0:
+                                                                        inline_keyboard = [];
+                                                                        component.fsmData[msg.message.chat.id].idCategoriaParent = parseInt(msg.data);
+                                                                        component.fsmData[msg.message.chat.id].nomeCategoria = nomeParent;
+                                                                        if (!(categorieChild.length == 0)) return [3 /*break*/, 2];
+                                                                        return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
+                                                                                return __awaiter(this, void 0, void 0, function () {
+                                                                                    var i;
+                                                                                    return __generator(this, function (_a) {
+                                                                                        switch (_a.label) {
+                                                                                            case 0:
+                                                                                                for (i = 0; i < conti.length; i++) {
+                                                                                                    if (i % 3 == 0) {
+                                                                                                        inline_keyboard[i / 3] = [];
+                                                                                                    }
+                                                                                                    inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                                                                                                 }
-                                                                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
-                                                                                            }
-                                                                                            component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
-                                                                                            component.fsmData[msg.message.chat.id].nomeCategoria = nomeParent;
-                                                                                            component.fsmData[msg.message.chat.id].step = 13;
-                                                                                            return [4 /*yield*/, component.bot.editMessageText("🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?", {
-                                                                                                    chat_id: msg.message.chat.id,
-                                                                                                    message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-                                                                                                    reply_markup: {
-                                                                                                        inline_keyboard: inline_keyboard,
-                                                                                                    },
-                                                                                                })];
-                                                                                        case 1:
-                                                                                            _a.sent();
-                                                                                            return [2 /*return*/];
-                                                                                    }
+                                                                                                nextStep = nextStepNoChild_1;
+                                                                                                message += "\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?";
+                                                                                                component.fsmData[msg.message.chat.id].step = nextStep;
+                                                                                                return [4 /*yield*/, component.bot.editMessageText(message, {
+                                                                                                        chat_id: msg.message.chat.id,
+                                                                                                        message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
+                                                                                                        reply_markup: {
+                                                                                                            inline_keyboard: inline_keyboard,
+                                                                                                        },
+                                                                                                    })];
+                                                                                            case 1:
+                                                                                                _a.sent();
+                                                                                                return [2 /*return*/];
+                                                                                        }
+                                                                                    });
                                                                                 });
-                                                                            });
-                                                                        })];
-                                                                case 1:
-                                                                    _a.sent();
-                                                                    return [3 /*break*/, 4];
-                                                                case 2:
-                                                                    for (i = 0; i < categorieChild.length; i++) {
-                                                                        if (i % 3 == 0) {
-                                                                            inline_keyboard[i / 3] = [];
+                                                                            })];
+                                                                    case 1:
+                                                                        _a.sent();
+                                                                        return [3 /*break*/, 4];
+                                                                    case 2:
+                                                                        for (i = 0; i < categorieChild.length; i++) {
+                                                                            if (i % 3 == 0) {
+                                                                                inline_keyboard[i / 3] = [];
+                                                                            }
+                                                                            inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
                                                                         }
-                                                                        inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
-                                                                    }
-                                                                    component.fsmData[msg.message.chat.id].idCategoriaParent = parseInt(msg.data);
-                                                                    component.fsmData[msg.message.chat.id].nomeCategoria = nomeParent;
-                                                                    component.fsmData[msg.message.chat.id].step = 12;
-                                                                    return [4 /*yield*/, component.bot.editMessageText("🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + nomeParent + "/ ?", {
-                                                                            chat_id: msg.message.chat.id,
-                                                                            message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-                                                                            reply_markup: {
-                                                                                inline_keyboard: inline_keyboard,
-                                                                            },
-                                                                        })];
-                                                                case 3:
-                                                                    _a.sent();
-                                                                    _a.label = 4;
-                                                                case 4: return [2 /*return*/];
-                                                            }
+                                                                        nextStep = nextStepWChild_1;
+                                                                        message += "\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + nomeParent + "/ ?";
+                                                                        component.fsmData[msg.message.chat.id].step = nextStep;
+                                                                        return [4 /*yield*/, component.bot.editMessageText(message, {
+                                                                                chat_id: msg.message.chat.id,
+                                                                                message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
+                                                                                reply_markup: {
+                                                                                    inline_keyboard: inline_keyboard,
+                                                                                },
+                                                                            })];
+                                                                    case 3:
+                                                                        _a.sent();
+                                                                        _a.label = 4;
+                                                                    case 4: return [2 /*return*/];
+                                                                }
+                                                            });
                                                         });
-                                                    });
-                                                })];
-                                        case 1:
-                                            _a.sent();
-                                            return [2 /*return*/];
-                                    }
+                                                    })];
+                                            case 1:
+                                                _a.sent();
+                                                return [2 /*return*/];
+                                        }
+                                    });
                                 });
-                            });
-                        })];
+                            })];
                     case 2:
                         _b.sent();
-                        return [3 /*break*/, 23];
+                        return [3 /*break*/, 21];
                     case 3: return [4 /*yield*/, component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", { "idParent": component.fsmData[msg.message.chat.id].idCategoriaParent }, function (categorieChild) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeChild, i;
@@ -368,7 +357,7 @@ var TelegramModule = /** @class */ (function () {
                                                                         if (i % 3 == 0) {
                                                                             inline_keyboard[i / 3] = [];
                                                                         }
-                                                                        inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                                                                        inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                                                                     }
                                                                     component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
                                                                     component.fsmData[msg.message.chat.id].nomeCategoria += "/" + nomeChild;
@@ -396,7 +385,7 @@ var TelegramModule = /** @class */ (function () {
                         })];
                     case 4:
                         _b.sent();
-                        return [3 /*break*/, 23];
+                        return [3 /*break*/, 21];
                     case 5: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeConto, i, inline_keyboard;
@@ -431,7 +420,7 @@ var TelegramModule = /** @class */ (function () {
                         })];
                     case 6:
                         _b.sent();
-                        return [3 /*break*/, 23];
+                        return [3 /*break*/, 21];
                     case 7: return [4 /*yield*/, component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, " ", " ", function (result) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var message;
@@ -453,95 +442,8 @@ var TelegramModule = /** @class */ (function () {
                         })];
                     case 8:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 9: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/categorie/entrataParent.sql', {}, function (categorieParent) {
-                            return __awaiter(this, void 0, void 0, function () {
-                                var nomeParent, i;
-                                return __generator(this, function (_a) {
-                                    switch (_a.label) {
-                                        case 0:
-                                            for (i = 0; i < categorieParent.length; i++) {
-                                                if (categorieParent[i].idCategoria == msg.data) {
-                                                    nomeParent = categorieParent[i].nome;
-                                                    break;
-                                                }
-                                            }
-                                            return [4 /*yield*/, component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", { "idParent": parseInt(msg.data) }, function (categorieChild) {
-                                                    return __awaiter(this, void 0, void 0, function () {
-                                                        var inline_keyboard, i;
-                                                        return __generator(this, function (_a) {
-                                                            switch (_a.label) {
-                                                                case 0:
-                                                                    inline_keyboard = [];
-                                                                    if (!(categorieChild.length == 0)) return [3 /*break*/, 2];
-                                                                    return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
-                                                                            return __awaiter(this, void 0, void 0, function () {
-                                                                                var i;
-                                                                                return __generator(this, function (_a) {
-                                                                                    switch (_a.label) {
-                                                                                        case 0:
-                                                                                            for (i = 0; i < conti.length; i++) {
-                                                                                                if (i % 3 == 0) {
-                                                                                                    inline_keyboard[i / 3] = [];
-                                                                                                }
-                                                                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
-                                                                                            }
-                                                                                            component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
-                                                                                            component.fsmData[msg.message.chat.id].nomeCategoria = nomeParent;
-                                                                                            component.fsmData[msg.message.chat.id].step = 23;
-                                                                                            return [4 /*yield*/, component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?", {
-                                                                                                    chat_id: msg.message.chat.id,
-                                                                                                    message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-                                                                                                    reply_markup: {
-                                                                                                        inline_keyboard: inline_keyboard,
-                                                                                                    },
-                                                                                                })];
-                                                                                        case 1:
-                                                                                            _a.sent();
-                                                                                            return [2 /*return*/];
-                                                                                    }
-                                                                                });
-                                                                            });
-                                                                        })];
-                                                                case 1:
-                                                                    _a.sent();
-                                                                    return [3 /*break*/, 4];
-                                                                case 2:
-                                                                    for (i = 0; i < categorieChild.length; i++) {
-                                                                        if (i % 3 == 0) {
-                                                                            inline_keyboard[i / 3] = [];
-                                                                        }
-                                                                        inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: categorieChild[i].nome, callback_data: categorieChild[i].idCategoria };
-                                                                    }
-                                                                    component.fsmData[msg.message.chat.id].idCategoriaParent = parseInt(msg.data);
-                                                                    component.fsmData[msg.message.chat.id].nomeCategoria = nomeParent;
-                                                                    component.fsmData[msg.message.chat.id].step = 22;
-                                                                    return [4 /*yield*/, component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + nomeParent + "/ ?", {
-                                                                            chat_id: msg.message.chat.id,
-                                                                            message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-                                                                            reply_markup: {
-                                                                                inline_keyboard: inline_keyboard,
-                                                                            },
-                                                                        })];
-                                                                case 3:
-                                                                    _a.sent();
-                                                                    _a.label = 4;
-                                                                case 4: return [2 /*return*/];
-                                                            }
-                                                        });
-                                                    });
-                                                })];
-                                        case 1:
-                                            _a.sent();
-                                            return [2 /*return*/];
-                                    }
-                                });
-                            });
-                        })];
-                    case 10:
-                        _b.sent();
-                        return [3 /*break*/, 23];
-                    case 11: return [4 /*yield*/, component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", { "idParent": component.fsmData[msg.message.chat.id].idCategoriaParent }, function (categorieChild) {
+                        return [3 /*break*/, 21];
+                    case 9: return [4 /*yield*/, component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", { "idParent": component.fsmData[msg.message.chat.id].idCategoriaParent }, function (categorieChild) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeChild, i;
                                 return __generator(this, function (_a) {
@@ -564,7 +466,7 @@ var TelegramModule = /** @class */ (function () {
                                                                         if (i % 3 == 0) {
                                                                             inline_keyboard[i / 3] = [];
                                                                         }
-                                                                        inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                                                                        inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                                                                     }
                                                                     component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
                                                                     component.fsmData[msg.message.chat.id].nomeCategoria += "/" + nomeChild;
@@ -590,10 +492,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 12:
+                    case 10:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 13: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
+                        return [3 /*break*/, 21];
+                    case 11: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeConto, i, inline_keyboard;
                                 return __generator(this, function (_a) {
@@ -625,10 +527,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 14:
+                    case 12:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 15: return [4 /*yield*/, component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, " ", " ", function (result) {
+                        return [3 /*break*/, 21];
+                    case 13: return [4 /*yield*/, component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, " ", " ", function (result) {
                             return __awaiter(this, void 0, void 0, function () {
                                 return __generator(this, function (_a) {
                                     switch (_a.label) {
@@ -645,10 +547,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 16:
+                    case 14:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 17: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
+                        return [3 /*break*/, 21];
+                    case 15: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeConto, i, inline_keyboard, i;
                                 return __generator(this, function (_a) {
@@ -665,7 +567,7 @@ var TelegramModule = /** @class */ (function () {
                                                 if (i % 3 == 0) {
                                                     inline_keyboard[i / 3] = [];
                                                 }
-                                                inline_keyboard[Math.round(i / 3)][Math.round(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
+                                                inline_keyboard[Math.floor(i / 3)][Math.floor(i % 3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                                             }
                                             component.fsmData[msg.message.chat.id].idContoFrom = parseInt(msg.data);
                                             component.fsmData[msg.message.chat.id].nomeContoFrom = nomeConto;
@@ -684,10 +586,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 18:
+                    case 16:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 19: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
+                        return [3 /*break*/, 21];
+                    case 17: return [4 /*yield*/, component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, function (conti) {
                             return __awaiter(this, void 0, void 0, function () {
                                 var nomeConto, i, inline_keyboard;
                                 return __generator(this, function (_a) {
@@ -719,10 +621,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 20:
+                    case 18:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 21: return [4 /*yield*/, component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, null, component.fsmData[msg.message.chat.id].idContoFrom, component.fsmData[msg.message.chat.id].idContoTo, " ", " ", function (result) {
+                        return [3 /*break*/, 21];
+                    case 19: return [4 /*yield*/, component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, null, component.fsmData[msg.message.chat.id].idContoFrom, component.fsmData[msg.message.chat.id].idContoTo, " ", " ", function (result) {
                             return __awaiter(this, void 0, void 0, function () {
                                 return __generator(this, function (_a) {
                                     switch (_a.label) {
@@ -739,10 +641,10 @@ var TelegramModule = /** @class */ (function () {
                                 });
                             });
                         })];
-                    case 22:
+                    case 20:
                         _b.sent();
-                        return [3 /*break*/, 23];
-                    case 23: return [2 /*return*/];
+                        return [3 /*break*/, 21];
+                    case 21: return [2 /*return*/];
                 }
             });
         }); });
