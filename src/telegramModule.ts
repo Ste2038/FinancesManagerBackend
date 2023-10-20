@@ -24,7 +24,7 @@ export class TelegramModule {
     }
 
     this.bot.on('message', async (msg) => {
-      console.log("From " + msg.chat.id + " : " + msg.text);
+      console.log("From " + msg.chat.id + " | " + component.fsmData[msg.chat.id].step + " : " + msg.text);
 
       if (msg.chat.id == component.master_id){
         let text = msg.text.toLowerCase();
@@ -36,7 +36,7 @@ export class TelegramModule {
         else if(text == "agg. conto"){
         }
         else if (text == "/bilancio" || text == "bilancio"){
-          component.database.getBilancioPerConto(new dbDate().toDateString(), function(bilancio){
+          component.database.getBilancioPerConto(new dbDate().addDays(1).toDateString(), function(bilancio){
             if(bilancio.status == 'error'){
               component.bot.sendMessage(msg.chat.id, "Errore nel recupero del bilancio");
             }
@@ -67,21 +67,22 @@ export class TelegramModule {
         else{
           let doneAnything = false;
 
-          if(parseInt(msg.text)){
-            let importo = parseInt(msg.text);
+          if (component.fsmData[msg.chat.id].step == 1 || component.fsmData[msg.chat.id].step == 2){
+            let queryPath, nextStep, message;
+            if(component.fsmData[msg.chat.id].step == 1){
+              queryPath = './queries/categorie/uscitaParent.sql';
+              nextStep = 11;
+              message = "🛒 Spesa\n";
+            }
+            else if (component.fsmData[msg.chat.id].step == 2){
+              queryPath = './queries/categorie/entrataParent.sql';
+              nextStep = 21;
+              message = "🤑 Guadagno\n";
+            }
 
-            if (component.fsmData[msg.chat.id].step == 1 || component.fsmData[msg.chat.id].step == 2){
-              let queryPath, nextStep, message;
-              if(component.fsmData[msg.chat.id].step == 1){
-                queryPath = './queries/categorie/uscitaParent.sql';
-                nextStep = 11;
-                message = "🛒 Spesa\nImporto: " + importo + "€\nCategoria?";
-              }
-              else if (component.fsmData[msg.chat.id].step == 2){
-                queryPath = './queries/categorie/entrataParent.sql';
-                nextStep = 21;
-                message = "🤑 Guadagno\nImporto: " + importo + "€\nCategoria?";
-              }
+            if(parseInt(msg.text)){
+              msg.text = msg.text.replace(",", ".");
+              let importo = parseFloat(msg.text);
 
               await component.database.executeQueryFromFile(queryPath, {}, async function(categorieParent){
                 let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
@@ -95,7 +96,7 @@ export class TelegramModule {
 
                 component.fsmData[msg.chat.id].importo = importo;
                 component.fsmData[msg.chat.id].step = nextStep;
-                await component.bot.editMessageText(message, {
+                await component.bot.editMessageText(message + "Importo: " + importo + "€\nCategoria?", {
                   chat_id: msg.chat.id,
                   message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
                   reply_markup: { 
@@ -103,10 +104,14 @@ export class TelegramModule {
                   },
                 });
               });
-
-              doneAnything = true;   
             }
-            else if(component.fsmData[msg.chat.id].step == 3){
+
+            doneAnything = true;   
+          }
+          else if(component.fsmData[msg.chat.id].step == 3){
+            if(parseInt(msg.text)){
+              msg.text = msg.text.replace(",", ".");
+              let importo = parseFloat(msg.text);
               await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
                 let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
                 for(let i = 0; i < conti.length; i++){
@@ -115,7 +120,7 @@ export class TelegramModule {
                   }
                   inline_keyboard[Math.floor(i/3)][Math.floor(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
                 }
-  
+
                 component.fsmData[msg.chat.id].importo = importo;
                 component.fsmData[msg.chat.id].step = 31;
                 await component.bot.editMessageText("➡️ Trasferimento\nImporto: " + importo + "€\nConto from?", {
@@ -126,8 +131,33 @@ export class TelegramModule {
                   },
                 });
               });
-              doneAnything = true; 
             }
+            doneAnything = true; 
+          }
+          else if(component.fsmData[msg.chat.id].step == 14 || component.fsmData[msg.chat.id].step == 24){
+            let message, nextStep;
+            if(component.fsmData[msg.chat.id].step == 14){
+              message = "🛒 Spesa\n";
+              nextStep = 14;
+            }
+            else if (component.fsmData[msg.chat.id].step == 24){
+              message = "🤑 Guadagno\n";
+              nextStep = 24;
+            }
+            component.fsmData[msg.chat.id].nota = msg.text;
+            component.fsmData[msg.chat.id].step = nextStep;
+            let inline_keyboard: { text: any; callback_data: any; }[][] = [];
+            inline_keyboard[0] = [];
+            inline_keyboard[0][0] = { text: "Fatto ", callback_data: "-1" };
+
+            await component.bot.editMessageText(message + "Importo: " + component.fsmData[msg.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.chat.id].nomeCategoria + "\nConto: " + component.fsmData[msg.chat.id].nomeConto + "\nNota: " + msg.text + "\nFatto?", {
+              chat_id: msg.chat.id,
+              message_id: component.fsmData[msg.chat.id].lastMessage.message_id,
+              reply_markup: { 
+                  inline_keyboard,
+                },
+            });
+            doneAnything = true;
           }
           
           if(!doneAnything)
@@ -144,13 +174,11 @@ export class TelegramModule {
 
     this.bot.on("callback_query", async(msg) => {
       console.log("Bot callback_query: " + JSON.stringify(msg.data)); 
-
+      let queryPath, queryPathParent, queryPathChild, nextStep, nextStepWChild, nextStepNoChild, message;
 
       switch(component.fsmData[msg.message.chat.id].step){
         case 11:
         case 21:
-          let queryPathParent, queryPathChild, nextStepWChild, nextStepNoChild, message;
-
           if(component.fsmData[msg.message.chat.id].step == 11){
             queryPathParent = './queries/categorie/uscitaParent.sql';
             queryPathChild = './queries/categorie/uscitaChild.sql';
@@ -192,6 +220,7 @@ export class TelegramModule {
                   nextStep = nextStepNoChild;
                   message += "\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?";
                   
+                  component.fsmData[msg.message.chat.id].idCategoriaChild = component.fsmData[msg.message.chat.id].idCategoriaParent;
                   component.fsmData[msg.message.chat.id].step = nextStep;
                   await component.bot.editMessageText(message, {
                     chat_id: msg.message.chat.id,
@@ -227,7 +256,20 @@ export class TelegramModule {
         break;
 
         case 12:
-          await component.database.executeQueryFromFile("./queries/categorie/uscitaChild.sql", {"idParent": component.fsmData[msg.message.chat.id].idCategoriaParent}, async function(categorieChild){
+        case 22:
+          if(component.fsmData[msg.message.chat.id].step == 12){
+            queryPath = './queries/categorie/uscitaChild.sql';
+            nextStep = 13;
+            message = "🛒 Spesa\n";
+          }
+          else if (component.fsmData[msg.message.chat.id].step == 22){
+            queryPath = './queries/categorie/entrataChild.sql';
+            nextStep = 23;
+            message = "🤑 Guadagno\n";
+          }
+
+
+          await component.database.executeQueryFromFile(queryPath, {"idParent": component.fsmData[msg.message.chat.id].idCategoriaParent}, async function(categorieChild){
             let nomeChild;
 
             for(let i = 0; i < categorieChild.length; i++){
@@ -248,8 +290,8 @@ export class TelegramModule {
 
               component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
               component.fsmData[msg.message.chat.id].nomeCategoria += "/" + nomeChild;
-              component.fsmData[msg.message.chat.id].step = 13;
-              await component.bot.editMessageText("🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?" , {
+              component.fsmData[msg.message.chat.id].step = nextStep;
+              await component.bot.editMessageText(message + "Importo: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?" , {
                 chat_id: msg.message.chat.id,
                 message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
                 reply_markup: { 
@@ -261,6 +303,16 @@ export class TelegramModule {
         break;
       
         case 13:
+        case 23:
+          if(component.fsmData[msg.message.chat.id].step == 13){
+            nextStep = 14;
+            message = "🛒 Spesa\n";
+          }
+          else if (component.fsmData[msg.message.chat.id].step == 23){
+            nextStep = 24;
+            message = "🤑 Guadagno\n";
+          }
+
           await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
             let nomeConto;
 
@@ -277,8 +329,9 @@ export class TelegramModule {
 
             component.fsmData[msg.message.chat.id].idConto = parseInt(msg.data);
             component.fsmData[msg.message.chat.id].nomeConto = nomeConto;
-            component.fsmData[msg.message.chat.id].step = 14;
-            await component.bot.editMessageText("🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + nomeConto + "\nDescrizione?", {
+            component.fsmData[msg.message.chat.id].nota = " ";
+            component.fsmData[msg.message.chat.id].step = nextStep;
+            await component.bot.editMessageText(message + "Importo: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + nomeConto + "\nNota?", {
               chat_id: msg.message.chat.id,
               message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
               reply_markup: { 
@@ -289,9 +342,9 @@ export class TelegramModule {
         break;
       
         case 14:
-          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, " ", " ", async function (result){
+          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, component.fsmData[msg.message.chat.id].nota, " ", async function (result){
             component.fsmData[msg.message.chat.id].step = 0;
-            let message = "🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + component.fsmData[msg.message.chat.id].nomeConto + "\nDescrizione: \nId: " + result.insertId + "\nSalvato!";
+            let message = "🛒 Spesa\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + component.fsmData[msg.message.chat.id].nomeConto + "\nNota: " + component.fsmData[msg.message.chat.id].nota + "\nId: " + result.insertId + "\nSalvato!";
             await component.bot.editMessageText(message, {
               chat_id: msg.message.chat.id,
               message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
@@ -299,72 +352,10 @@ export class TelegramModule {
           });
         break;
       
-        case 22:
-          await component.database.executeQueryFromFile("./queries/categorie/entrataChild.sql", {"idParent": component.fsmData[msg.message.chat.id].idCategoriaParent}, async function(categorieChild){
-            let nomeChild;
-
-            for(let i = 0; i < categorieChild.length; i++){
-              if(categorieChild[i].idCategoria == msg.data){
-                nomeChild = categorieChild[i].nome;
-                break;
-              }
-            }
-
-            await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-              let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
-              for(let i = 0; i < conti.length; i++){
-                if(i % 3 == 0){
-                  inline_keyboard[i/3] = [];
-                }
-                inline_keyboard[Math.floor(i/3)][Math.floor(i%3)] = { text: conti[i].nome, callback_data: conti[i].idConto };
-              }
-
-              component.fsmData[msg.message.chat.id].idCategoriaChild = parseInt(msg.data);
-              component.fsmData[msg.message.chat.id].nomeCategoria += "/" + nomeChild;
-              component.fsmData[msg.message.chat.id].step = 23;
-              await component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto?" , {
-                chat_id: msg.message.chat.id,
-                message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-                reply_markup: { 
-                  inline_keyboard,
-                },
-              });
-            });
-          });
-        break;
-      
-        case 23:
-          await component.database.executeQueryFromFile('./queries/selectAll/conti.sql', {}, async function(conti){
-            let nomeConto;
-
-            for(let i = 0; i < conti.length; i++){
-              if(conti[i].idConto == msg.data){
-                nomeConto = conti[i].nome;
-                break;
-              }
-            }
-
-            let inline_keyboard:{ text: any; callback_data: any; }[][] = [];
-            inline_keyboard[0] = [];
-            inline_keyboard[0][0] = { text: "Fatto ", callback_data: "-1" };
-
-            component.fsmData[msg.message.chat.id].idConto = parseInt(msg.data);
-            component.fsmData[msg.message.chat.id].nomeConto = nomeConto;
-            component.fsmData[msg.message.chat.id].step = 24;
-            await component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + nomeConto + "\nDescrizione?", {
-              chat_id: msg.message.chat.id,
-              message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
-              reply_markup: { 
-                  inline_keyboard,
-                },
-            });
-          });
-        break;
-      
         case 24:
-          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, " ", " ", async function (result){
+          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, component.fsmData[msg.message.chat.id].idCategoriaChild, component.fsmData[msg.message.chat.id].idConto, null, component.fsmData[msg.message.chat.id].nota, " ", async function (result){
             component.fsmData[msg.message.chat.id].step = 0;
-            await component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + component.fsmData[msg.message.chat.id].nomeConto + "\nDescrizione: \nId: " + result.insertId + "\nSalvato!", {
+            await component.bot.editMessageText("🤑 Guadagno\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nCategoria: " + component.fsmData[msg.message.chat.id].nomeCategoria + "\nConto: " + component.fsmData[msg.message.chat.id].nomeConto + "\nNota: " + component.fsmData[msg.message.chat.id].nota + "\nId: " + result.insertId + "\nSalvato!", {
               chat_id: msg.message.chat.id,
               message_id: component.fsmData[msg.message.chat.id].lastMessage.message_id,
             });
@@ -420,6 +411,7 @@ export class TelegramModule {
 
             component.fsmData[msg.message.chat.id].idContoTo = parseInt(msg.data);
             component.fsmData[msg.message.chat.id].nomeContoTo = nomeConto;
+            component.fsmData[msg.message.chat.id].nota = " ";
             component.fsmData[msg.message.chat.id].step = 33;
             await component.bot.editMessageText("➡️ Trasferimento\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nConto from: " + component.fsmData[msg.message.chat.id].nomeContoFrom + "\nConto to: " + nomeConto + "\nDescrizione?" , {
               chat_id: msg.message.chat.id,
@@ -432,7 +424,7 @@ export class TelegramModule {
         break;
       
         case 33:
-          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, null, component.fsmData[msg.message.chat.id].idContoFrom, component.fsmData[msg.message.chat.id].idContoTo, " ", " ", async function (result){
+          await component.database.insertTransazioneNow(component.fsmData[msg.message.chat.id].importo, null, component.fsmData[msg.message.chat.id].idContoFrom, component.fsmData[msg.message.chat.id].idContoTo, component.fsmData[msg.message.chat.id].nota, " ", async function (result){
             component.fsmData[msg.message.chat.id].step = 0;
             await component.bot.editMessageText("➡️ Trasferimento\nImporto: " + component.fsmData[msg.message.chat.id].importo + "€\nConto from: " + component.fsmData[msg.message.chat.id].nomeContoFrom + "\nConto to: " + component.fsmData[msg.message.chat.id].nomeContoTo + "\nDescrizione:\nId: " + result.insertId + "\nSalvato!", {
               chat_id: msg.message.chat.id,

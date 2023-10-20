@@ -245,7 +245,7 @@ export class DatabaseModule{
     let dayToCount = (endYear.toMilliseconds() - beginYear.toMilliseconds()) / MSTOGG;
 
     component.getBilancioPerContoAnnuoPerGiorno(anno, function(conti){
-      component.executeQueryFromFile('./queries/ricorrenti/ricorrentiCategorie.sql', {}, function(ricorrenti){
+      component.executeQueryFromFile('./queries/misc/ricorrentiCategorie.sql', {}, function(ricorrenti){
         for(let i = 0; i < ricorrenti.length; i++){
           //console.log(ricorrenti[i]);
           let index_conto = -1;
@@ -292,7 +292,7 @@ export class DatabaseModule{
   getMesiRimanenti(callback){
     let component = this;
     component.getBilancioPerConto("2023-12-31", function(conti){
-      component.executeQueryFromFile("./queries/ricorrenti/ricorrentiCategorie.sql", {}, function(results){
+      component.executeQueryFromFile("./queries/misc/ricorrentiCategorie.sql", {}, function(results){
         let mesiSuperati = 0;
           let valid = true;
           while (valid){
