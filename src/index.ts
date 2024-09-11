@@ -8,7 +8,7 @@ import { DatabaseModule } from './databaseModule';
 import { TelegramModule } from './telegramModule';
 
 let database: DatabaseModule = new DatabaseModule(Constants.db_host, Constants.db_user, Constants.db_pass, Constants.db_name);
-let telegram: TelegramModule = new TelegramModule(Constants.telegram_token, Constants.telegram_master_id, database, true);
+let telegram: TelegramModule = new TelegramModule(Constants.telegram_token, Constants.telegram_master_id, database, false);
 
 /* Express */
 const port = process.env.PORT || 8080;

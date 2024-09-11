@@ -215,6 +215,17 @@ export class EventRouter{
       });
     });
 
+    router.get('/savings/mese', function (req, res, next) {
+      database.executeQueryFromFile('./queries/misc/entrateUscitePerMeseInAnno.sql', {}, function(result){
+        if(result.status == 'error'){
+          res.status(500).json({status: 'error'});
+        }
+        else{
+          res.status(200).json(result);
+        }
+      });
+    });
+
     return router;
   }
 }

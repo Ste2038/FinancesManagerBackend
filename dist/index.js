@@ -8,7 +8,7 @@ var Constants_1 = require("./Constants");
 var databaseModule_1 = require("./databaseModule");
 var telegramModule_1 = require("./telegramModule");
 var database = new databaseModule_1.DatabaseModule(Constants_1.Constants.db_host, Constants_1.Constants.db_user, Constants_1.Constants.db_pass, Constants_1.Constants.db_name);
-var telegram = new telegramModule_1.TelegramModule(Constants_1.Constants.telegram_token, Constants_1.Constants.telegram_master_id, database, true);
+var telegram = new telegramModule_1.TelegramModule(Constants_1.Constants.telegram_token, Constants_1.Constants.telegram_master_id, database, false);
 /* Express */
 var port = process.env.PORT || 8080;
 var app = express();
